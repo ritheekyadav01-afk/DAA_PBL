@@ -1,5 +1,6 @@
 """Route visualization with networkx layout + plotly."""
 import json
+import math
 import os
 
 import networkx as nx
@@ -10,6 +11,7 @@ from src.sssp import dijkstra, reconstruct_path
 
 REPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report")
 TITLE = "Campus Shuttle Network (estimated distances)"
+ASSUMED = ["Shuttle speed (20 km/h) and passenger demand are ASSUMED, not measured"]
 ROUTE_TRACE = 3  # index of the selectable route trace in the figure
 
 
@@ -26,7 +28,8 @@ def to_networkx(g):
 def _positions(g):
     """lng/lat if available, else spring layout. Time: O(V) or O(iter * V^2)."""
     if all(v in g.coords for v in g.adj):
-        return {v: (g.coords[v][1], g.coords[v][0]) for v in g.adj}
+        k = math.cos(math.radians(sum(c[0] for c in g.coords.values()) / len(g.coords)))
+        return {v: (g.coords[v][1] * k, g.coords[v][0]) for v in g.adj}  # x scaled so the map isn't stretched
     return nx.spring_layout(to_networkx(g), seed=1)
 
 
@@ -38,6 +41,13 @@ def _edge_trace(pos, edges, color, width, name):
         ys += [pos[u][1], pos[v][1], None]
     return go.Scatter(x=xs, y=ys, mode="lines", name=name,
                       line=dict(color=color, width=width), hoverinfo="skip")
+
+
+def _label_positions(g, pos):
+    """Alternate labels right/left going north to south so clustered stops stay legible. Time: O(V log V)."""
+    order = sorted(g.adj, key=lambda v: -pos[v][1])
+    side = {v: ("middle right" if i % 2 == 0 else "middle left") for i, v in enumerate(order)}
+    return [side[v] for v in g.adj]
 
 
 def all_routes(g):
@@ -55,7 +65,7 @@ def build_figure(g, mst_edges, wait, src, dst):
     Row 2: average-wait bar chart. Time: O(V + E)."""
     pos = _positions(g)
     nm = lambda v: g.names.get(v, v)
-    fig = make_subplots(rows=2, cols=1, row_heights=[0.68, 0.32], vertical_spacing=0.12,
+    fig = make_subplots(rows=2, cols=1, row_heights=[0.74, 0.26], vertical_spacing=0.12,
                         subplot_titles=("", "Average passenger wait: before vs after"))
     fig.add_trace(_edge_trace(pos, [(u, v) for u, v, _ in g.edges()], "#b5b4ad", 1.5, "Roads"), 1, 1)
     edges = g.edges()
@@ -74,7 +84,7 @@ def build_figure(g, mst_edges, wait, src, dst):
         line=dict(color="#eb6834", width=5), hoverinfo="skip"), 1, 1)
     fig.add_trace(go.Scatter(
         x=[pos[v][0] for v in g.adj], y=[pos[v][1] for v in g.adj], mode="markers+text",
-        text=[nm(v) for v in g.adj], textposition="top center", name="Stops",
+        text=[nm(v) for v in g.adj], textposition=_label_positions(g, pos), name="Stops",
         hovertext=[f"{v}: {nm(v)}" for v in g.adj], hoverinfo="text",
         marker=dict(size=11, color="#0b0b0b", line=dict(width=2, color="#fcfcfb"))), 1, 1)
 
@@ -91,11 +101,11 @@ def build_figure(g, mst_edges, wait, src, dst):
         text=f"<b>{wait['improvement_pct']:.0f}% shorter wait</b> than baseline",
         font=dict(size=14))
     fig.add_annotation(
-        x=0, y=-0.17, xref="paper", yref="paper", xanchor="left", yanchor="top", showarrow=False,
+        x=0, y=-0.11, xref="paper", yref="paper", xanchor="left", yanchor="top", showarrow=False,
         align="left", font=dict(size=11),
         text="<b>Baseline assumptions (all inputs are estimates):</b><br>"
-             + "<br>".join("• " + a for a in wait["assumptions"]))
-    fig.update_layout(title=TITLE, template="plotly_white", height=1150, margin=dict(t=120, b=240),
+             + "<br>".join("• " + a for a in ASSUMED + wait["assumptions"]))
+    fig.update_layout(title=TITLE, template="plotly_white", height=1560, margin=dict(t=120, b=320),
                       legend=dict(orientation="h", y=1.0, yanchor="bottom"))
     fig.update_xaxes(visible=False, row=1, col=1)
     ys = [p[1] for p in pos.values()]

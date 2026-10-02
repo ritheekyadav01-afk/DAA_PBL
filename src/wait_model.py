@@ -4,8 +4,8 @@ Assumptions (also shown on the dashboard):
 - Passengers arrive uniformly in time, so a stop served by a loop of length T
   min has an average wait of T/2 min.
 - Each stop is weighted by passengers originating there (data/demand.csv).
-- Loop time = sum of shortest-path times between consecutive stops (estimated
-  edge times already include 0.5 min dwell).
+- Loop time = sum of shortest-path times between consecutive stops (edge time =
+  haversine distance at an assumed shuttle speed; no dwell time modeled).
 """
 from src.apsp import floyd_warshall
 from src.dp import load_demand, load_fleet

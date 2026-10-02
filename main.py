@@ -10,13 +10,14 @@ def fmt(g, path):
 
 def main():
     g = Graph.from_csv()
-    print(f"Graph: {g.num_vertices()} stops, {g.num_edges()} roads (data is ESTIMATED placeholder)\n")
+    print(f"Graph: {g.num_vertices()} stops, {g.num_edges()} roads (edges/demand/fleet are ESTIMATES)\n")
 
     pe, pw = mst.prim(g)
     ke, kw = mst.kruskal(g)
     print(f"[MST] Prim total = {pw:.1f} min, Kruskal total = {kw:.1f} min, match = {abs(pw - kw) < 1e-9}")
 
-    src, dst = "S2", "S10"  # Bus Stop -> Race Arena
+    by_name = {n: v for v, n in g.names.items()}
+    src, dst = by_name["Bus Stop"], by_name["Race Arena"]
     dist, prev = sssp.dijkstra(g, src)
     bd, _, neg = sssp.bellman_ford(g, src)
     path = sssp.reconstruct_path(prev, src, dst)

@@ -3,8 +3,8 @@
 Run: `pip install -r requirements.txt && python main.py` (outputs go to `report/`).
 
 ## Data status: ESTIMATES
-- `data/stops.csv`: the 11 stop names are real. **lat/lng are ESTIMATED relative positions** around an assumed Woxsen origin, only to make the map look like a plausible campus. Not surveyed.
-- `data/edges.csv`: **ESTIMATED**. Each stop links to its 2 nearest stops (plus a few bridging edges so the graph is connected); time = straight-line distance x 1.3 at ~15 km/h + 0.5 min dwell.
-- `data/fleet.csv`, `data/demand.csv`, `data/shifts.csv`: **ESTIMATED** placeholders (Main Gate and Bus Stop are the depots).
+- `data/stops.csv`: 14 stops with real names and coordinates (user-provided).
+- `data/edges.csv`: **ESTIMATED edge set** (which stops connect is assumed, not surveyed roads); time = haversine distance at an **assumed 20 km/h** shuttle speed, no dwell.
+- `data/fleet.csv`, `data/demand.csv`, `data/shifts.csv`: **ESTIMATED** placeholders (Main Gate and Bus Stop are the depots; shuttle speed and demand are assumed).
 
-Each file starts with a `# ESTIMATE` comment line; the loader skips `#` lines. Replace with measured data when available.
+The estimated data files start with a `# ESTIMATE` comment line (`stops.csv` has none, as its coordinates are real); the loader skips `#` lines. Replace with measured data when available.
