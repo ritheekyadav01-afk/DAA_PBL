@@ -1,0 +1,20 @@
+# ESTIMATE: placeholder shuttle service blocks needing a driver (HH:MM, 24h). Invented times. Replace with real data.
+shift_id,start,end
+SH01,07:00,09:00
+SH02,07:30,08:30
+SH03,08:00,10:30
+SH04,08:45,10:00
+SH05,09:30,11:00
+SH06,10:00,12:30
+SH07,11:00,12:00
+SH08,12:00,14:00
+SH09,12:15,13:15
+SH10,13:00,15:30
+SH11,14:00,15:00
+SH12,15:00,17:00
+SH13,15:30,18:00
+SH14,16:30,18:30
+SH15,17:00,19:00
+SH16,18:30,20:30
+SH17,19:00,21:00
+SH18,20:00,22:00

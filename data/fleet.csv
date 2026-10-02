@@ -1,0 +1,5 @@
+# ESTIMATE: placeholder shuttle fleet. Capacities are assumed seat counts, NOT the real fleet. Replace with real data.
+shuttle_id,capacity
+BUS-1,30
+BUS-2,20
+VAN-1,12

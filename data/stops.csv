@@ -1,0 +1,17 @@
+# ESTIMATE: placeholder Woxsen-style campus stops. Coordinates are approximate, NOT surveyed. Replace with real data.
+stop_id,name,lat,lng
+S01,Main Gate,17.579000,78.087000
+S02,Admin Block,17.580617,78.089356
+S03,School of Business,17.581964,78.090958
+S04,School of Technology,17.580617,78.092277
+S05,School of Arts & Design,17.582773,78.093125
+S06,Central Library,17.583492,78.090581
+S07,Auditorium,17.582773,78.088885
+S08,Food Court,17.584570,78.091900
+S09,Boys Hostel,17.585827,78.094727
+S10,Girls Hostel,17.586186,78.089827
+S11,Faculty Residences,17.587803,78.087754
+S12,Sports Complex,17.583042,78.095481
+S13,Cricket Ground,17.584839,78.097365
+S14,Health Centre,17.584570,78.088131
+S15,Shuttle Depot & Parking,17.580976,78.085869
