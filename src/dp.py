@@ -6,7 +6,7 @@ from src.graph import DATA_DIR, read_csv
 def load_fleet(path=None):
     """Time: O(F)."""
     path = path or os.path.join(DATA_DIR, "fleet.csv")
-    return [(r["shuttle_id"], int(r["capacity"])) for r in read_csv(path)]
+    return [(r["shuttle_id"], int(r["capacity"]), r["depot_stop"]) for r in read_csv(path)]
 
 
 def load_demand(path=None):
@@ -44,10 +44,10 @@ def assign_groups(groups, fleet):
     Time: O(F * G * W_max). Returns (assignment, unassigned_groups)."""
     remaining = list(groups)
     assignment = {}
-    for sid, cap in sorted(fleet, key=lambda f: -f[1]):
+    for sid, cap, depot in sorted(fleet, key=lambda f: -f[1]):
         best, idx = knapsack([g["passengers"] for g in remaining],
                              [g["passengers"] * g["priority"] for g in remaining], cap)
-        assignment[sid] = {"capacity": cap, "value": best, "groups": [remaining[i] for i in idx]}
+        assignment[sid] = {"capacity": cap, "depot": depot, "value": best, "groups": [remaining[i] for i in idx]}
         picked = set(idx)
         remaining = [g for i, g in enumerate(remaining) if i not in picked]
     return assignment, remaining

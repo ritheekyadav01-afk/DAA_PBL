@@ -16,7 +16,7 @@ def main():
     ke, kw = mst.kruskal(g)
     print(f"[MST] Prim total = {pw:.1f} min, Kruskal total = {kw:.1f} min, match = {abs(pw - kw) < 1e-9}")
 
-    src, dst = "S15", "S13"
+    src, dst = "S2", "S10"  # Bus Stop -> Race Arena
     dist, prev = sssp.dijkstra(g, src)
     bd, _, neg = sssp.bellman_ford(g, src)
     path = sssp.reconstruct_path(prev, src, dst)
@@ -39,7 +39,7 @@ def main():
     print("[DP] Knapsack assignment (value = passengers x priority):")
     for sid, a in assignment.items():
         used = sum(x["passengers"] for x in a["groups"])
-        print(f"     {sid}: {used}/{a['capacity']} seats, value {a['value']}, groups {[x['group_id'] for x in a['groups']]}")
+        print(f"     {sid} (depot {a['depot']}): {used}/{a['capacity']} seats, value {a['value']}, groups {[x['group_id'] for x in a['groups']]}")
     print(f"     Unassigned: {[x['group_id'] for x in left]}")
 
     print("\n[Experiments] benchmarking...")
