@@ -1,5 +1,5 @@
 """Runs every module on the CSV data in data/ and writes outputs to report/."""
-from src import apsp, dashboard, dp, experiments, greedy, mst, sssp
+from src import apsp, dashboard, dp, experiments, greedy, mst, sssp, wait_model
 from src.graph import Graph
 
 
@@ -45,8 +45,13 @@ def main():
     print("\n[Experiments] benchmarking...")
     print("  saved", experiments.plot(experiments.run()))
 
-    print("  saved", dashboard.save(dashboard.build_figure(g, pe, path)))
-
+    wait = wait_model.compare(g, pe, src)
+    print(f"[Wait] avg wait: before {wait['before']:.1f} min, route-only {wait['route_only']:.1f} min, "
+          f"after {wait['after']:.1f} min -> {wait['improvement_pct']:.0f}% improvement")
+    for a in wait["assumptions"]:
+        print("       -", a)
+    fig, data = dashboard.build_figure(g, pe, wait, src, dst)
+    print("  saved", dashboard.save(fig, data))
 
 if __name__ == "__main__":
     main()
