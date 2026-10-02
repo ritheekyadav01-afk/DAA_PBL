@@ -1,5 +1,5 @@
 """Runs every module on the CSV data in data/ and writes outputs to report/."""
-from src import apsp, dashboard, dp, experiments, greedy, mst, sssp, wait_model
+from src import apsp, dashboard, dp, experiments, greedy, mst, sensitivity, sssp, wait_model
 from src.graph import Graph
 
 
@@ -47,11 +47,27 @@ def main():
     print("  saved", experiments.plot(experiments.run()))
 
     wait = wait_model.compare(g, pe, src)
-    print(f"[Wait] avg wait: before {wait['before']:.1f} min, route-only {wait['route_only']:.1f} min, "
-          f"after {wait['after']:.1f} min -> {wait['improvement_pct']:.0f}% improvement")
+    print("[TSP] closed-tour cost over shortest-path times (start = Bus Stop):")
+    for name, c in wait["costs"].items():
+        print(f"      {name:<22} {c:6.2f} min  ({c / wait['optimal_cost']:.3f}x optimal)")
+    print(f"      MST approximation ratio = {wait['mst_ratio']:.3f} (theory: <= 2.000)")
+    print("      Optimal order:", fmt(g, wait["tours"]["Optimal (Held-Karp)"]))
+    print(f"[Wait] avg wait: file-order {wait['before']:.2f}, nearest-neighbour "
+          f"{wait['waits']['Nearest neighbour']:.2f}, MST {wait['route_only']:.2f}, optimal "
+          f"{wait['waits']['Optimal (Held-Karp)']:.2f}, after (3 shuttles) {wait['after']:.2f} min -> {wait['improvement_pct']:.0f}% improvement")
     for a in wait["assumptions"]:
         print("       -", a)
-    fig, data = dashboard.build_figure(g, pe, wait, src, dst)
+    sens = sensitivity.run(g, pe, src)
+    print("[Fleet] avg wait vs number of shuttles (MST tour slices):")
+    for k, wt, gain in zip(sens["k"], sens["wait"], sens["gain"]):
+        print(f"      {k} shuttle(s): {wt:.2f} min" + ("" if gain is None else f"  (saves {gain:.2f} vs {k - 1})"))
+    if sens["knee"]:
+        print(f"      Improvement per extra shuttle first drops below {sens['threshold']} min at "
+              f"{sens['knee']} shuttles")
+    else:
+        print(f"      Improvement per extra shuttle never drops below {sens['threshold']} min up to {sens['k'][-1]}")
+    print("  saved", sensitivity.plot(sens))
+    fig, data = dashboard.build_figure(g, pe, wait, src, dst, sens)
     print("  saved", dashboard.save(fig, data))
 
 if __name__ == "__main__":

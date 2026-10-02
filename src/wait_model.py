@@ -9,6 +9,7 @@ Assumptions (also shown on the dashboard):
 """
 from src.apsp import floyd_warshall
 from src.dp import load_demand, load_fleet
+from src.tsp import held_karp, nearest_neighbour, tour_cost
 
 
 def stop_weights(demand):
@@ -68,26 +69,37 @@ def weighted_wait(loops, d, w):
 
 
 def compare(g, mst_edges, start):
-    """Before/after average wait. Time: O(V^3) (Floyd-Warshall) + O(V^2)."""
+    """Before/after average wait plus tour costs for every tour heuristic.
+    Time: O(V^3) Floyd-Warshall + O(V^2 * 2^V) Held-Karp (dominant for V = 14)."""
     d, _ = floyd_warshall(g)
     w = stop_weights(load_demand())
     k = len(load_fleet())
-    naive = g.vertices()  # stops in stops.csv order, one shuttle
-    tour = mst_tour(mst_edges, d, start)
-    before = weighted_wait([naive], d, w)
-    route_only = weighted_wait([tour], d, w)
+    vs = g.vertices()
+    tours = {
+        "File order": vs,  # stops in stops.csv order
+        "Nearest neighbour": nearest_neighbour(d, vs, start),
+        "MST preorder": mst_tour(mst_edges, d, start),
+    }
+    opt_cost, tours["Optimal (Held-Karp)"] = held_karp(d, vs, start)
+    costs = {n: tour_cost(t, d) for n, t in tours.items()}
+    waits = {n: weighted_wait([t], d, w) for n, t in tours.items()}
+    tour = tours["MST preorder"]
     after_loops = split_even(tour, k)
     after = weighted_wait(after_loops, d, w)
+    before = waits["File order"]
     return {
-        "before": before, "route_only": route_only, "after": after,
+        "tours": tours, "costs": costs, "waits": waits, "optimal_cost": opt_cost,
+        "mst_ratio": costs["MST preorder"] / opt_cost if opt_cost else 1.0,
+        "before": before, "route_only": waits["MST preorder"], "after": after,
         "improvement_pct": 100 * (before - after) / before if before else 0.0,
-        "naive_loop": naive, "naive_loop_min": loop_time(naive, d),
+        "naive_loop": vs, "naive_loop_min": costs["File order"],
         "tour": tour, "after_loops": after_loops, "k": k,
         "assumptions": [
             "Passengers arrive uniformly, so average wait = loop time / 2",
             "Stops weighted by passengers in demand.csv (all estimated)",
-            f"Before: 1 shuttle visits stops in stops.csv order ({naive[0]}..{naive[-1]}) and repeats",
-            "Route only: 1 shuttle on the MST preorder tour",
+            f"Before: 1 shuttle visits stops in stops.csv order ({vs[0]}..{vs[-1]}) and repeats",
+            "Nearest neighbour / MST preorder / Optimal: 1 shuttle on that closed tour",
+            "Optimal = Held-Karp exact TSP over shortest-path distances",
             f"After: {k} fleet shuttles run concurrently, each looping one contiguous slice of the MST tour",
             "Shift schedule: greedy driver assignment staffs the fleet; wait uses steady-state headways",
         ],

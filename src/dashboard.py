@@ -10,7 +10,7 @@ from plotly.subplots import make_subplots
 from src.sssp import dijkstra, reconstruct_path
 
 REPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report")
-TITLE = "Campus Shuttle Network (estimated distances)"
+TITLE = "Campus Shuttle Network (real coordinates, assumed speed 20 km/h)"
 ASSUMED = ["Shuttle speed (20 km/h) and passenger demand are ASSUMED, not measured"]
 ROUTE_TRACE = 3  # index of the selectable route trace in the figure
 
@@ -60,13 +60,16 @@ def all_routes(g):
     return routes
 
 
-def build_figure(g, mst_edges, wait, src, dst):
+def build_figure(g, mst_edges, wait, src, dst, sens=None):
     """Row 1: campus map (named stops, edge-time hover, MST, selectable route).
-    Row 2: average-wait bar chart. Time: O(V + E)."""
+    Row 2: average-wait bar chart. Row 3 (optional `sens`): wait vs fleet size. Time: O(V + E)."""
     pos = _positions(g)
     nm = lambda v: g.names.get(v, v)
-    fig = make_subplots(rows=2, cols=1, row_heights=[0.74, 0.26], vertical_spacing=0.12,
-                        subplot_titles=("", "Average passenger wait: before vs after"))
+    titles = ["", "Average passenger wait: before vs after"]
+    if sens:
+        titles.append("Average wait vs number of shuttles (MST tour slices)")
+    fig = make_subplots(rows=len(titles), cols=1, row_heights=[0.56, 0.22, 0.22] if sens else [0.74, 0.26],
+                        vertical_spacing=0.1, subplot_titles=titles)
     fig.add_trace(_edge_trace(pos, [(u, v) for u, v, _ in g.edges()], "#b5b4ad", 1.5, "Roads"), 1, 1)
     edges = g.edges()
     fig.add_trace(go.Scatter(  # invisible midpoints so hovering an edge shows its time
@@ -88,24 +91,41 @@ def build_figure(g, mst_edges, wait, src, dst):
         hovertext=[f"{v}: {nm(v)}" for v in g.adj], hoverinfo="text",
         marker=dict(size=11, color="#0b0b0b", line=dict(width=2, color="#fcfcfb"))), 1, 1)
 
-    labels = ["Before<br>(naive, 1 shuttle)", "Route only<br>(MST tour, 1 shuttle)",
-              f"After<br>(MST tour, {wait['k']} shuttles)"]
-    vals = [wait["before"], wait["route_only"], wait["after"]]
+    w1 = wait["waits"]
+    labels = ["Before<br>(file order,<br>1 shuttle)", "Nearest<br>neighbour<br>(1 shuttle)",
+              "MST preorder<br>(1 shuttle)", "Optimal TSP<br>Held-Karp<br>(1 shuttle)",
+              f"After<br>(MST tour,<br>{wait['k']} shuttles)"]
+    vals = [w1["File order"], w1["Nearest neighbour"], w1["MST preorder"],
+            w1["Optimal (Held-Karp)"], wait["after"]]
     fig.add_trace(go.Bar(
-        x=labels, y=vals, marker_color=["#2a78d6", "#eb6834", "#1baf7a"], showlegend=False,
-        text=[f"{v:.1f} min" for v in vals], textposition="outside", cliponaxis=False,
+        x=labels, y=vals, marker_color=["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"],
+        showlegend=False, text=[f"{v:.2f} min" for v in vals], textposition="outside", cliponaxis=False,
         hovertemplate="%{x}: %{y:.2f} min<extra></extra>"), 2, 1)
     fig.update_yaxes(title_text="avg wait (min)", range=[0, max(vals) * 1.35], row=2, col=1)
+    if sens:
+        fig.add_trace(go.Scatter(
+            x=sens["k"], y=sens["wait"], mode="lines+markers+text", showlegend=False,
+            text=[f"{v:.2f}" for v in sens["wait"]], textposition="top center",
+            line=dict(color="#2a78d6", width=2), marker=dict(size=9),
+            hovertext=[f"{k} shuttle(s): {v:.2f} min" + ("" if g_ is None else f" (saves {g_:.2f} vs {k - 1})")
+                       for k, v, g_ in zip(sens["k"], sens["wait"], sens["gain"])],
+            hoverinfo="text"), 3, 1)
+        if sens["knee"]:
+            fig.add_vline(x=sens["knee"], line=dict(color="#eb6834", dash="dash"), row=3, col=1,
+                          annotation_text=f"extra shuttle saves < {sens['threshold']} min from here",
+                          annotation_position="top right")
+        fig.update_xaxes(title_text="number of shuttles", dtick=1, row=3, col=1)
+        fig.update_yaxes(title_text="avg wait (min)", range=[0, max(sens["wait"]) * 1.3], row=3, col=1)
     fig.add_annotation(
-        x=labels[2], y=max(vals) * 1.22, xref="x2", yref="y2", showarrow=False,
+        x=labels[4], y=max(vals) * 1.22, xref="x2", yref="y2", showarrow=False,
         text=f"<b>{wait['improvement_pct']:.0f}% shorter wait</b> than baseline",
         font=dict(size=14))
     fig.add_annotation(
-        x=0, y=-0.11, xref="paper", yref="paper", xanchor="left", yanchor="top", showarrow=False,
+        x=0, y=-0.1 if sens else -0.11, xref="paper", yref="paper", xanchor="left", yanchor="top", showarrow=False,
         align="left", font=dict(size=11),
         text="<b>Baseline assumptions (all inputs are estimates):</b><br>"
              + "<br>".join("• " + a for a in ASSUMED + wait["assumptions"]))
-    fig.update_layout(title=TITLE, template="plotly_white", height=1560, margin=dict(t=120, b=320),
+    fig.update_layout(title=TITLE, template="plotly_white", height=1950 if sens else 1560, margin=dict(t=120, b=320),
                       legend=dict(orientation="h", y=1.0, yanchor="bottom"))
     fig.update_xaxes(visible=False, row=1, col=1)
     ys = [p[1] for p in pos.values()]
