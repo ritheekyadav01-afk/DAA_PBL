@@ -66,7 +66,7 @@ src/
 tests/test_algorithms.py  202 tests (cross-checks and brute force)
 report/                 dashboard.html and generated charts
 docs/                   project report (docx and pdf)
-final_review/           review deck (html, pdf), presentation script, viva prep
+final_review/           review deck (pdf), presentation script, viva prep
 ```
 
 ## 5. The algorithms
