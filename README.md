@@ -57,6 +57,8 @@ Open `report/dashboard.html` by double-clicking it. It is one self-contained pag
 5. **The result:** before vs after bars and three shuttles running their own slices of the loop.
 6. **Trust and limits:** tests, cross-checks and an honest data note, plus a collapsible technical table (every algorithm, its complexity and result) for reviewers.
 
+**Light / dark theme** (top-right toggle; light by default, your choice is remembered in the browser). In **Try it** the chosen route is drawn as a glowing line with flowing dashes and a driving shuttle; the stops are marked A, 1, 2 … B (the destination pulses), the rest of the map fades back, and a step line shows the minutes for each leg.
+
 **Presentation mode** (top-right button) auto-scrolls through the six screens in about 2 minutes; the arrow keys also move between screens and `Esc` stops it. It respects the browser's reduced-motion setting and works on phones.
 
 How it is built: `src/dashboard.py` collects the real results of the run into JSON (including live cross-checks) and injects them into `src/dashboard_template.html`, which draws everything with plain HTML, CSS, SVG and JavaScript. Nothing on the page is typed in by hand. The tests `test_dashboard_generated_with_key_numbers` and `test_dashboard_has_six_sections_and_is_offline` check that the file is generated, contains the key numbers (5.81, 6.69, 2.03) and loads no external resources.

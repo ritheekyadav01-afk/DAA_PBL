@@ -3,15 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{if(localStorage.getItem("shuttle-theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <title>Campus Shuttle · Cutting the wait</title>
 <style>
 /* ===== Design tokens: white, near-black, ONE teal accent, ONE red for "before / problem" ===== */
 :root{
+  color-scheme:light;
   --bg:#ffffff; --ink:#0b0f0e; --muted:#4a5653; --line:#e3e8e7; --soft:#f5f8f7;
-  --teal:#0F766E; --teal-dark:#0b5c56; --teal-soft:#e6f3f1;
+  --teal:#0F766E; --teal-dark:#0b5c56; --teal-soft:#e6f3f1; --teal-mid:#5eb3aa;
+  --card:#ffffff; --halo:#ffffff; --road:#d3dad8; --lead:#9aa7a4; --step-n:#b8c4c1; --on-teal:#ffffff;
+  --red-line:#f6caca; --teal-line:#bfe0db; --nav-bg:rgba(255,255,255,.92);
+  --shadow:0 1px 2px rgba(0,0,0,.03), 0 10px 30px rgba(15,60,55,.06);
   --red:#DC2626; --red-soft:#fdecec;
   --nav-h:64px; --radius:18px;
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+}
+/* Dark theme: same two accents, brighter so they keep contrast on a dark surface */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b100f; --ink:#f1f5f4; --muted:#a7b4b1; --line:#26312f; --soft:#101615;
+  --teal:#2dd4bf; --teal-dark:#5eead4; --teal-soft:#10312d; --teal-mid:#2a8f84;
+  --red:#f87171; --red-soft:#2e1517;
+  --card:#141b1a; --halo:#141b1a; --road:#34423f; --lead:#6c7a77; --step-n:#475451; --on-teal:#04201c;
+  --red-line:#5a2326; --teal-line:#1f5a53; --nav-bg:rgba(11,16,15,.9);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth; scroll-snap-type:y proximity}
@@ -24,14 +39,14 @@ h3{font-size:19px; line-height:1.25; font-weight:700}
 .kicker{font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--teal); margin-bottom:12px}
 .wrap{max-width:1140px; margin:0 auto; padding:0 24px; width:100%}
 button,select{font-family:inherit; font-size:16px}
-.btn{border:0; border-radius:999px; padding:14px 26px; font-weight:700; font-size:17px; cursor:pointer; background:var(--teal); color:#fff; transition:background .2s, transform .2s}
+.btn{border:0; border-radius:999px; padding:14px 26px; font-weight:700; font-size:17px; cursor:pointer; background:var(--teal); color:var(--on-teal); transition:background .2s, transform .2s}
 .btn:hover{background:var(--teal-dark); transform:translateY(-1px)}
-.btn.ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line)}
+.btn.ghost{background:var(--card); color:var(--ink); border:1.5px solid var(--line)}
 .btn.ghost:hover{border-color:var(--teal); color:var(--teal)}
 :focus-visible{outline:3px solid var(--teal); outline-offset:2px; border-radius:6px}
 
 /* ===== sticky nav ===== */
-.nav{position:sticky; top:0; z-index:50; height:var(--nav-h); background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+.nav{position:sticky; top:0; z-index:50; height:var(--nav-h); background:var(--nav-bg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
 .nav .wrap{display:flex; align-items:center; gap:18px; height:100%}
 .brand{font-weight:800; display:flex; align-items:center; gap:10px; white-space:nowrap}
 .brand i{width:12px; height:12px; border-radius:50%; background:var(--teal); box-shadow:0 0 0 4px var(--teal-soft)}
@@ -52,27 +67,30 @@ button,select{font-family:inherit; font-size:16px}
 .g2{grid-template-columns:1fr 1fr}
 #result .g2{grid-template-columns:.8fr 1.2fr}
 .g-map{grid-template-columns:.9fr 1.1fr}
-.g-try{grid-template-columns:1.05fr .95fr; align-items:start}
+.g-try{grid-template-columns:1.15fr .85fr; align-items:start}
+#try .mapwrap{position:relative}
+#try .mapwrap svg{max-height:62vh}
+#try .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+#try .row select{width:100%; min-width:0}
 .stack{display:flex; flex-direction:column; gap:16px}
 #try.sec{padding:36px 0}
 #try .card{padding:20px}
 #try .simple{margin-top:6px; padding:8px 14px}
-#try .path-text{min-height:0}
 #try .k-read{margin:0}
 #try h2{font-size:clamp(26px,3.4vw,38px)}
 .reveal{opacity:0; transform:translateY(22px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)}
 .reveal.in{opacity:1; transform:none}
 
-.card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:0 1px 2px rgba(0,0,0,.03), 0 10px 30px rgba(15,60,55,.06)}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow)}
 .simple{margin-top:16px; background:var(--teal-soft); border-radius:12px; padding:12px 16px; font-size:16px; color:var(--ink)}
 .simple b{color:var(--teal-dark)}
 .chips{display:flex; flex-wrap:wrap; gap:12px; margin-top:22px}
-.chip{border-radius:14px; padding:12px 18px; background:#fff; border:1px solid var(--line)}
+.chip{border-radius:14px; padding:12px 18px; background:var(--card); border:1px solid var(--line)}
 .chip b{display:block; font-size:28px; line-height:1.1; font-variant-numeric:tabular-nums}
 .chip span{font-size:15px; color:var(--muted)}
-.chip.red{background:var(--red-soft); border-color:#f6caca}
+.chip.red{background:var(--red-soft); border-color:var(--red-line)}
 .chip.red b{color:var(--red)}
-.chip.teal{background:var(--teal-soft); border-color:#bfe0db}
+.chip.teal{background:var(--teal-soft); border-color:var(--teal-line)}
 .chip.teal b{color:var(--teal)}
 
 /* ===== 1 hero ===== */
@@ -82,14 +100,14 @@ button,select{font-family:inherit; font-size:16px}
 .ba{display:flex; justify-content:center; align-items:center; gap:16px; margin-top:18px; font-size:18px; flex-wrap:wrap}
 .ba .b{color:var(--red); font-weight:800}
 .ba .a{color:var(--teal); font-weight:800}
-.badge{display:inline-block; background:var(--teal); color:#fff; border-radius:999px; padding:6px 16px; font-weight:800; font-size:17px}
+.badge{display:inline-block; background:var(--teal); color:var(--on-teal); border-radius:999px; padding:6px 16px; font-weight:800; font-size:17px}
 .hero-actions{display:flex; gap:14px; margin-top:30px; flex-wrap:wrap}
 
 /* ===== maps ===== */
 .mapwrap svg{display:block; width:100%; height:auto; max-height:68vh}
-.lbl{font-weight:600; fill:var(--ink); paint-order:stroke; stroke:#fff; stroke-width:5px; stroke-linejoin:round}
-.road{stroke:#d3dad8; stroke-width:3; stroke-linecap:round}
-.node{fill:var(--ink); stroke:#fff; stroke-width:3; transition:fill .3s}
+.lbl{font-weight:600; fill:var(--ink); paint-order:stroke; stroke:var(--halo); stroke-width:5px; stroke-linejoin:round; transition:opacity .4s}
+.road{stroke:var(--road); stroke-width:3; stroke-linecap:round}
+.node{fill:var(--ink); stroke:var(--card); stroke-width:3; transition:fill .3s}
 .node.on{fill:var(--teal)}
 .node.red{fill:var(--red)}
 .caption{margin-top:12px; font-weight:700; font-size:18px}
@@ -100,7 +118,7 @@ button,select{font-family:inherit; font-size:16px}
 .step{position:relative; display:flex; flex-direction:column; gap:10px}
 .step .ic{width:52px; height:52px; border-radius:14px; background:var(--teal-soft); display:grid; place-items:center}
 .step .ic svg{width:28px; height:28px; stroke:var(--teal); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
-.step .n{position:absolute; top:18px; right:20px; font-weight:800; color:#b8c4c1; font-size:15px}
+.step .n{position:absolute; top:18px; right:20px; font-weight:800; color:var(--step-n); font-size:15px}
 .step .algos{font-size:15px; color:var(--teal-dark); font-weight:600}
 .step .simple{margin-top:2px; font-size:16px}
 .step .res{margin-top:auto; padding-top:10px; border-top:1px solid var(--line); font-weight:800; font-size:18px}
@@ -109,13 +127,33 @@ button,select{font-family:inherit; font-size:16px}
 /* ===== 4 try it ===== */
 .row{display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin:12px 0}
 .row label{display:flex; flex-direction:column; gap:6px; font-weight:700; font-size:15px; color:var(--muted)}
-select{padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); min-width:180px; font-weight:600}
+select{padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); min-width:150px; font-weight:600}
 select:hover{border-color:var(--teal)}
 .route-out{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; min-height:34px}
 .route-out b{font-size:34px; color:var(--teal); font-variant-numeric:tabular-nums}
 .route-out span{color:var(--muted)}
-.path-text{margin-top:4px; font-size:16px; color:var(--ink); min-height:48px}
-input[type=range]{width:100%; accent-color:var(--teal); height:32px}
+/* route on the map: soft glow, flowing dashes, popping A / B / numbered markers, pulsing destination */
+.mapwrap svg.focus .road{opacity:.4}
+.mapwrap svg.focus .node:not(.on){opacity:.35}
+.flow{stroke:#fff; stroke-width:3.5; stroke-dasharray:1 17; opacity:0; transition:opacity .5s; animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-18}}
+.pop{transform-box:fill-box; transform-origin:center; animation:pop .5s cubic-bezier(.2,.9,.3,1.4) both}
+@keyframes pop{from{transform:scale(0); opacity:0} to{transform:scale(1); opacity:1}}
+.pulse{transform-box:fill-box; transform-origin:center; animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1); opacity:.55} 100%{transform:scale(2.4); opacity:0}}
+/* step-by-step line under the minutes: A -> 1 -> 2 -> B with minutes per leg */
+.path-text{display:flex; flex-wrap:wrap; align-items:center; gap:8px 8px; margin-top:8px; font-size:16px; font-weight:600}
+.stp{display:inline-flex; align-items:center; gap:6px}
+#try .path-text{gap:6px 6px; font-size:16px}
+.bdg{display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--card); border:2.5px solid var(--teal); color:var(--teal); font-size:14px; font-weight:800}
+.bdg.end{background:var(--teal); color:var(--on-teal)}
+.leg{font-size:14px; font-weight:700; color:var(--muted); background:var(--teal-soft); border-radius:999px; padding:2px 10px}
+input[type=range]{width:100%; height:32px; background:transparent; -webkit-appearance:none; appearance:none; cursor:pointer; --p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:8px; border-radius:99px; background:linear-gradient(to right,var(--teal) var(--p),var(--line) var(--p))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:26px; height:26px; margin-top:-9px; border-radius:50%; background:var(--teal); border:4px solid var(--card); box-shadow:0 1px 5px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-track{height:8px; border-radius:99px; background:var(--line)}
+input[type=range]::-moz-range-progress{height:8px; border-radius:99px; background:var(--teal)}
+input[type=range]::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--teal); border:4px solid var(--card); box-shadow:0 1px 5px rgba(0,0,0,.35)}
 .k-read{display:flex; align-items:baseline; gap:12px; margin:6px 0 4px}
 .k-read b{font-size:48px; color:var(--teal); line-height:1; font-variant-numeric:tabular-nums}
 .k-read span{color:var(--muted)}
@@ -145,7 +183,7 @@ input[type=range]{width:100%; accent-color:var(--teal); height:32px}
 .trust .ok{display:inline-grid; place-items:center; width:40px; height:40px; border-radius:50%; background:var(--teal-soft); color:var(--teal); font-weight:800; font-size:20px}
 .trust ul{margin:10px 0 0; padding:0; list-style:none; font-size:16px; color:var(--ink)}
 .trust li{margin:6px 0; padding-left:2px}
-details{margin-top:26px; border:1px solid var(--line); border-radius:var(--radius); background:#fff}
+details{margin-top:26px; border:1px solid var(--line); border-radius:var(--radius); background:var(--card)}
 summary{cursor:pointer; padding:18px 22px; font-weight:800; font-size:18px; list-style:none}
 summary::after{content:"+"; float:right; color:var(--teal); font-size:24px; line-height:1}
 details[open] summary::after{content:"–"}
@@ -176,6 +214,8 @@ footer{padding:36px 0 56px; color:var(--muted); font-size:15px; border-top:1px s
   html{scroll-behavior:auto}
   .reveal{opacity:1; transform:none; transition:none}
   .col .bar{transition:none}
+  .pop,.pulse,.flow{animation:none}
+  .flow{display:none}
   .btn{transition:none}
 }
 </style>
@@ -189,6 +229,7 @@ footer{padding:36px 0 56px; color:var(--muted); font-size:15px; border-top:1px s
       <a href="#hero">Start</a><a href="#problem">Problem</a><a href="#solution">Solution</a>
       <a href="#try">Try it</a><a href="#result">Result</a><a href="#trust">Trust</a>
     </div>
+    <button class="btn ghost" id="themeBtn" aria-label="Switch to dark theme" title="Switch theme">🌙 <span class="lg">Dark</span></button>
     <button class="btn" id="presentBtn" aria-pressed="false">▶ <span class="lg">Presentation mode</span><span class="sm">Present</span></button>
   </div>
   <div class="progress" id="progress"></div>
@@ -443,24 +484,25 @@ function makeMap(host, label) {
     const l = S('line', { x1: P[e.u].x, y1: P[e.u].y, x2: P[e.v].x, y2: P[e.v].y, class: 'road' });
     const t = S('title'); t.textContent = nameOf(e.u) + ' – ' + nameOf(e.v) + ': ' + fmt(e.w, 1) + ' min'; l.appendChild(t); gRoad.appendChild(l);
   });
-  const nodes = {};
+  const nodes = {}, labels = {};
   DATA.stops.forEach(s => {
     const c = LABELS[s.id];
     if (c.d >= 26) { const nx = clamp(P[s.id].x, c.r.x1, c.r.x2), ny = clamp(P[s.id].y, c.r.y1, c.r.y2);
-      gLead.appendChild(S('line', { x1: P[s.id].x, y1: P[s.id].y, x2: nx, y2: ny, stroke: '#9aa7a4', 'stroke-width': 1.5 })); }
+      gLead.appendChild(S('line', { x1: P[s.id].x, y1: P[s.id].y, x2: nx, y2: ny, stroke: 'var(--lead)', 'stroke-width': 1.5 })); }
     const n = S('circle', { cx: P[s.id].x, cy: P[s.id].y, r: 10, class: 'node' }); nodes[s.id] = n; gNode.appendChild(n);
-    const t = S('text', { x: c.tx, y: c.ty, 'text-anchor': c.anchor, class: 'lbl', 'font-size': FS }); t.textContent = s.name; gLbl.appendChild(t);
+    const t = S('text', { x: c.tx, y: c.ty, 'text-anchor': c.anchor, class: 'lbl', 'font-size': FS }); t.textContent = s.name; gLbl.appendChild(t); labels[s.id] = t;
   });
   host.appendChild(svg);
-  return { svg, gRoute, gDot, nodes };
+  return { svg, gRoute, gDot, nodes, labels };
 }
 
 /* ---- moving shuttle dots: one loop, only runs for sections on screen ---- */
 const active = {}, dots = [];
 function addDot(sec, pl, color, speed, host) {
-  const el = S('circle', { r: 11, fill: color, stroke: '#fff', 'stroke-width': 3.5 }); host.appendChild(el);
+  const el = S('circle', { r: 11, fill: color, stroke: 'var(--card)', 'stroke-width': 3.5 }); host.appendChild(el);
   const o = { sec, pl, el, speed, pos: 0 }; place(o); dots.push(o); return o;
 }
+function removeDot(o) { o.el.remove(); const i = dots.indexOf(o); if (i >= 0) dots.splice(i, 1); }
 function place(o) { const p = pointAt(o.pl, o.pos); o.el.setAttribute('cx', p[0]); o.el.setAttribute('cy', p[1]); }
 let lastT = 0;
 function frame(now) {
@@ -492,7 +534,11 @@ let heroDone = false;
 function playHero() {
   if (heroDone) return; heroDone = true;
   const num = $('#heroNum'), small = '<small>min</small>';
-  const paint = t => { num.style.color = `rgb(${Math.round(lerp(220, 15, t))},${Math.round(lerp(38, 118, t))},${Math.round(lerp(38, 110, t))})`; };
+  const paint = t => {                              // red -> teal, using the endpoints of the active theme
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const a = dark ? [248, 113, 113] : [220, 38, 38], b = dark ? [45, 212, 191] : [15, 118, 110];
+    num.style.color = `rgb(${a.map((v, i) => Math.round(lerp(v, b[i], t))).join(',')})`;
+  };
   const holder = { set textContent(v) { num.innerHTML = v + small; } };
   countTo(holder, K.before, K.after, 2600, 2, paint);
 }
@@ -537,7 +583,7 @@ function initSolution() {
 }
 
 /* ================= section 4: try it ================= */
-let tryMap, routeEls = [], routeTimers = [], tryDone = false;
+let tryMap, routeEls = [], routeTimers = [], tryDone = false, tryDot = null;
 function initTry() {
   tryMap = makeMap($('#mapTry'), 'Map showing the shortest route between the chosen stops');
   const from = $('#selFrom'), to = $('#selTo');
@@ -548,26 +594,61 @@ function initTry() {
   sl.oninput = () => showFleet(+sl.value);
   showRoute(from.value, to.value, false); showFleet(+sl.value);
 }
-function showRoute(a, b, animate) {
+function clearRoute() {                             // remove everything the previous route drew
   routeTimers.forEach(clearTimeout); routeTimers = [];
   routeEls.forEach(e => e.remove()); routeEls = [];
+  if (tryDot) { removeDot(tryDot); tryDot = null; }
   Object.values(tryMap.nodes).forEach(n => n.classList.remove('on'));
-  if (a === b) { $('#routeMin').textContent = '–'; $('#routeSub').textContent = ''; $('#routePath').textContent = 'Pick two different stops.'; return; }
-  const d = DATA.dijkstra[a]; const path = []; let cur = b;
+  tryMap.svg.classList.remove('focus');
+  DATA.stops.forEach(st => { const l = tryMap.labels[st.id]; l.style.opacity = 1; l.style.fontWeight = 600; });
+}
+function badge(id, text, kind) {                    // A / B / numbered marker that pops in on a stop
+  const g = S('g', { class: 'pop' }), x = P[id].x, y = P[id].y, mid = kind === 'mid';
+  if (kind === 'b' && !RM) g.appendChild(S('circle', { cx: x, cy: y, r: 16, class: 'pulse', fill: 'var(--teal)' }));   // pulsing destination
+  g.appendChild(S('circle', { cx: x, cy: y, r: mid ? 12 : 15, fill: mid ? 'var(--card)' : 'var(--teal)', stroke: 'var(--teal)', 'stroke-width': 3.5 }));
+  const t = S('text', { x, y: y + 5.5, 'text-anchor': 'middle', 'font-size': mid ? 15 : 17, 'font-weight': 800, fill: mid ? 'var(--teal)' : 'var(--on-teal)' });
+  t.textContent = text; g.appendChild(t); tryMap.gDot.appendChild(g); routeEls.push(g);
+}
+function showRoute(a, b, animate) {
+  clearRoute();
+  const box = $('#routePath'); box.innerHTML = '';
+  if (a === b) { $('#routeMin').textContent = '–'; $('#routeSub').textContent = ''; box.textContent = 'Pick two different stops.'; return; }
+  const d = DATA.dijkstra[a], path = []; let cur = b;
   while (cur != null) { path.push(cur); if (cur === a) break; cur = d.prev[cur]; }
   path.reverse();
-  const pl = poly(path), line = S('polyline', { points: ptsAttr(pl), fill: 'none', stroke: 'var(--teal)', 'stroke-width': 8, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
-  tryMap.gRoute.appendChild(line); routeEls.push(line);
-  const mins = d.dist[b], stops = path.length - 2;
-  $('#routeMin').textContent = fmt(mins, 1) + ' min';
-  $('#routeSub').textContent = stops > 0 ? `passing ${stops} stop${stops > 1 ? 's' : ''}` : 'direct, no stops in between';
-  $('#routePath').textContent = path.map(nameOf).join(' → ');
-  path.forEach((id, i) => { if (animate && !RM) routeTimers.push(setTimeout(() => tryMap.nodes[id].classList.add('on'), 250 + i * 330)); else tryMap.nodes[id].classList.add('on'); });
-  if (animate) drawIn(line, Math.max(900, path.length * 330));
+  const pl = poly(path), pts = ptsAttr(pl), last = path.length - 1;
+  const look = { points: pts, fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+  const glow = S('polyline', Object.assign({ stroke: 'var(--teal)', 'stroke-width': 26, opacity: 0.16 }, look));
+  const line = S('polyline', Object.assign({ stroke: 'var(--teal)', 'stroke-width': 9 }, look));
+  const flow = S('polyline', Object.assign({ class: 'flow' }, look));
+  tryMap.gRoute.append(glow, line, flow); routeEls.push(glow, line, flow);
+  tryMap.svg.classList.add('focus');                // everything off the route steps back
+  const on = new Set(path);
+  DATA.stops.forEach(st => { const l = tryMap.labels[st.id]; l.style.opacity = on.has(st.id) ? 1 : 0.4; l.style.fontWeight = on.has(st.id) ? 800 : 600; });
+
+  // headline numbers + the A -> 1 -> 2 -> B line with minutes per leg
+  $('#routeMin').textContent = fmt(d.dist[b], 1) + ' min';
+  const mid = path.length - 2;
+  $('#routeSub').textContent = mid > 0 ? `passing ${mid} stop${mid > 1 ? 's' : ''}` : 'direct, no stops in between';
+  path.forEach((id, i) => {
+    const tag = i === 0 ? 'A' : i === last ? 'B' : String(i);
+    box.appendChild(E('span', { class: 'stp' }, [E('b', { class: 'bdg' + (i === 0 || i === last ? ' end' : ''), text: tag }), nameOf(id)]));
+    if (i < last) box.appendChild(E('span', { class: 'leg', text: fmt(d.dist[path[i + 1]] - d.dist[id], 1) + ' min' }));
+  });
+
+  // animation: draw the route, pop the markers one by one, then flowing dashes and a driving shuttle
+  const step = animate && !RM ? 330 : 0, drawMs = Math.max(900, path.length * 330);
+  path.forEach((id, i) => {
+    const show = () => { tryMap.nodes[id].classList.add('on'); badge(id, i === 0 ? 'A' : i === last ? 'B' : String(i), i === 0 ? 'a' : i === last ? 'b' : 'mid'); };
+    if (step) routeTimers.push(setTimeout(show, 250 + i * step)); else show();
+  });
+  const finish = () => { flow.style.opacity = 1; if (!RM) tryDot = addDot('try', pl, 'var(--ink)', 130, tryMap.gDot); };
+  if (step) { drawIn(line, drawMs); drawIn(glow, drawMs); routeTimers.push(setTimeout(finish, drawMs + 100)); } else finish();
 }
 function sweetSpot() { const s = DATA.sensitivity; return s.knee ? s.knee - 1 : s.k[s.k.length - 1]; }
 function showFleet(k) {
   const s = DATA.sensitivity, w = s.wait[k - 1];
+  $('#kSlider').style.setProperty('--p', ((k - s.k[0]) / (s.k[s.k.length - 1] - s.k[0]) * 100) + '%');
   countTo({ set textContent(v) { $('#kWait').textContent = v; } }, parseFloat($('#kWait').textContent) || w, w, 350, 2);
   $('#kText').textContent = `minutes average wait with ${k} shuttle${k > 1 ? 's' : ''}`;
   const sweet = sweetSpot();
@@ -577,14 +658,14 @@ function showFleet(k) {
   const top = Math.ceil(Math.max(...s.wait) / 2) * 2,            // axis top: next even number
         x = i => L + (i - s.k[0]) / (s.k[s.k.length - 1] - s.k[0]) * (W - L - R), y = v => T + (1 - v / top) * (H - T - B);
   for (let v = 0; v <= top; v += 2) { const gy = y(v);
-    svg.appendChild(S('line', { x1: L, y1: gy, x2: W - R, y2: gy, stroke: '#e3e8e7' }));
+    svg.appendChild(S('line', { x1: L, y1: gy, x2: W - R, y2: gy, stroke: 'var(--line)' }));
     const t = S('text', { x: L - 10, y: gy + 5, class: 'tick', 'text-anchor': 'end' }); t.textContent = v; svg.appendChild(t); }
   s.k.forEach(i => { const t = S('text', { x: x(i), y: H - 26, class: 'tick', 'text-anchor': 'middle' }); t.textContent = i; svg.appendChild(t); });
   const sx = x(sweet);
   svg.appendChild(S('rect', { x: sx - 22, y: T - 8, width: 44, height: H - T - B + 8, rx: 10, fill: 'var(--teal-soft)' }));
   const sl = S('text', { x: sx, y: T - 14, class: 'tick', 'text-anchor': 'middle', 'font-weight': 700, fill: 'var(--teal-dark)' }); sl.textContent = 'sweet spot'; svg.appendChild(sl);
   svg.appendChild(S('polyline', { points: s.k.map(i => x(i) + ',' + y(s.wait[i - 1])).join(' '), fill: 'none', stroke: 'var(--teal)', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-  s.k.forEach(i => svg.appendChild(S('circle', { cx: x(i), cy: y(s.wait[i - 1]), r: i === k ? 11 : 6, fill: i === k ? 'var(--teal)' : '#fff', stroke: 'var(--teal)', 'stroke-width': 3.5 })));
+  s.k.forEach(i => svg.appendChild(S('circle', { cx: x(i), cy: y(s.wait[i - 1]), r: i === k ? 11 : 6, fill: i === k ? 'var(--teal)' : 'var(--card)', stroke: 'var(--teal)', 'stroke-width': 3.5 })));
   const lab = S('text', { x: W / 2, y: H - 4, class: 'tick', 'text-anchor': 'middle' }); lab.textContent = 'number of shuttles'; svg.appendChild(lab);
 }
 function sweetHolds() {                              // do all later gains stay under the threshold?
@@ -596,11 +677,11 @@ function playTry() { if (tryDone) return; tryDone = true; showRoute($('#selFrom'
 
 /* ================= section 5: result ================= */
 let resultMap, barsDone = false;
-const SHUT = ['#0F766E', '#0b0f0e', '#5eb3aa'];   // three shuttles: teal, near-black, light teal (stays in palette)
+const SHUT = ['var(--teal)', 'var(--ink)', 'var(--teal-mid)'];   // three shuttles: teal, ink, light teal (stays in palette)
 function initResult() {
   const bars = [
     { v: K.before, color: 'var(--red)', label: '1 shuttle, fixed order' },
-    { v: K.mstOne, color: '#5eb3aa', label: '1 shuttle, planned loop' },
+    { v: K.mstOne, color: 'var(--teal-mid)', label: '1 shuttle, planned loop' },
     { v: K.after, color: 'var(--teal)', label: `${K.shuttles} shuttles, planned loop` }];
   const max = Math.max(...bars.map(b => b.v)), host = $('#bars');
   bars.forEach(b => {
@@ -707,6 +788,17 @@ function stopPresent(finished) {
   if (finished) setTimeout(() => { bar.style.width = '0'; }, 1500);
 }
 $('#presentBtn').onclick = startPresent;
+
+/* Light / dark theme: remembered in this browser, default light */
+function setTheme(t, save) {
+  document.documentElement.setAttribute('data-theme', t);
+  const b = $('#themeBtn'), dark = t === 'dark';
+  b.innerHTML = dark ? '☀ <span class="lg">Light</span>' : '🌙 <span class="lg">Dark</span>';
+  b.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+  if (save) { try { localStorage.setItem('shuttle-theme', t); } catch (e) { /* private mode: just don't remember */ } }
+}
+$('#themeBtn').onclick = () => setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
+setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light', false);
 document.addEventListener('keydown', e => {
   if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
   const next = ['ArrowDown', 'ArrowRight', 'PageDown'].includes(e.key), prev = ['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key);
