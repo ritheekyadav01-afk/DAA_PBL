@@ -105,7 +105,8 @@ Fleet sensitivity (avg wait): 1 shuttle 5.05, 2: 3.91, 3: 2.03, 4: 1.75, 5: 1.26
 ## 8. Documents
 
 - `docs/DAA_Project_Report.docx` / `.pdf`: first-draft project report (problem, literature survey, SRS, design, algorithms, results, testing, limitations).
-- `final_review/DAA_Campus_Shuttle_Deck.pdf` (and `.html`): final review deck.
+- `final_review/DAA_Campus_Shuttle_Deck.pptx` / `.pdf` / `.html`: final review deck.
+- `notebooks/walkthrough.ipynb`: Jupyter notebook that runs the pipeline, shows the charts and runs the tests.
 - `final_review/DAA_Presentation_Script.pdf`: speaking script.
 - `final_review/DAA_Viva_Prep.md`: likely viva questions and answers.
 
