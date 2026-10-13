@@ -41,18 +41,27 @@ cd DAA_PBL
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py        # runs every algorithm, prints results, writes report/
-pytest -q             # 202 tests
+pytest -q             # 204 tests
 ```
 
 `main.py` prints all results and regenerates `report/dashboard.html` and the charts in `report/`.
 
-### Interactive dashboard
+### Dashboard (the visual story)
 
-`report/dashboard.html` is a single, self-contained web page (no server, no CDN, no internet — just double-click it). Every number in it is read from the real `main.py` run: `src/dashboard.py` exports the results as JSON and injects them into `src/dashboard_template.html`, which draws everything with hand-written HTML/CSS/SVG + JavaScript. It has:
+Open `report/dashboard.html` by double-clicking it. It is one self-contained page (no server, no CDN, no internet) written so that someone who has never seen the project understands it in about 30 seconds. It scrolls through six screens:
 
-- an animated hero (average wait counting 6.69 → 2.03 min) and count-up KPI cards;
-- an **interactive algorithm stage** with Play / Pause / Step / Reset, a speed slider and keyboard shortcuts (<kbd>Space</kbd>, <kbd>←</kbd>/<kbd>→</kbd>): MST growing edge-by-edge (Prim/Kruskal), Dijkstra's wave with selectable source/destination, an animated Floyd-Warshall heatmap, a greedy-scheduling Gantt chart, knapsack seats filling, moving-shuttle tour comparison, and a live wait-time simulator with a fleet-size slider;
-- the fleet-size curve (knee at 3 shuttles), a complexity table, a data-note box, a light/dark toggle, and a **Demo mode** button that auto-plays the whole story (~2 min).
+1. **Hero:** the claim ("6.69 to 2.03 minutes, 70% less") with an animated before/after number.
+2. **The problem:** the single shuttle's fixed-order loop in red, with a moving shuttle.
+3. **How we solve it:** four steps (model, routes, scheduling, best loop), each with a plain-English "In simple words" line and its headline result.
+4. **Try it:** pick a start and end stop to see the animated shortest route (Dijkstra), and slide the number of shuttles (1 to 6) to see the average wait; the sweet spot is marked.
+5. **The result:** before vs after bars and three shuttles running their own slices of the loop.
+6. **Trust and limits:** tests, cross-checks and an honest data note, plus a collapsible technical table (every algorithm, its complexity and result) for reviewers.
+
+**Presentation mode** (top-right button) auto-scrolls through the six screens in about 2 minutes; the arrow keys also move between screens and `Esc` stops it. It respects the browser's reduced-motion setting and works on phones.
+
+How it is built: `src/dashboard.py` collects the real results of the run into JSON (including live cross-checks) and injects them into `src/dashboard_template.html`, which draws everything with plain HTML, CSS, SVG and JavaScript. Nothing on the page is typed in by hand. The tests `test_dashboard_generated_with_key_numbers` and `test_dashboard_has_six_sections_and_is_offline` check that the file is generated, contains the key numbers (5.81, 6.69, 2.03) and loads no external resources.
+
+Rounding note: the exact averages are 6.685 and 5.055 minutes; the dashboard rounds halves up (6.69, 5.06), while `main.py` prints with Python's `round` (6.68, 5.05).
 
 ## 4. Repository layout
 
@@ -70,9 +79,9 @@ src/
   wait_model.py         average wait, shuttle slicing
   sensitivity.py        wait vs fleet size
   experiments.py        random graphs, runtime benchmarks
-  dashboard.py          builds the interactive dashboard (exports real results as JSON)
+  dashboard.py          builds the dashboard (exports real results as JSON)
   dashboard_template.html  self-contained HTML/CSS/JS front end (no CDN, offline)
-tests/test_algorithms.py  202 tests (cross-checks and brute force)
+tests/test_algorithms.py  204 tests (cross-checks, brute force, dashboard)
 report/                 dashboard.html and generated charts
 docs/                   project report (docx and pdf)
 final_review/           final review deck (pptx and pdf)
@@ -109,7 +118,7 @@ Fleet sensitivity (avg wait): 1 shuttle 5.05, 2: 3.91, 3: 2.03, 4: 1.75, 5: 1.26
 
 ## 7. Verification
 
-202 automated tests, mostly independent cross-checks: Prim vs Kruskal, Dijkstra vs Bellman-Ford vs Floyd-Warshall, Held-Karp vs brute-force permutations, knapsack vs brute-force subsets, and Held-Karp never losing to the heuristics, over many random seeds. A runtime benchmark (50 to 1600 nodes) confirms the expected growth.
+204 automated tests, mostly independent cross-checks: Prim vs Kruskal, Dijkstra vs Bellman-Ford vs Floyd-Warshall, Held-Karp vs brute-force permutations, knapsack vs brute-force subsets, and Held-Karp never losing to the heuristics, over many random seeds. A runtime benchmark (50 to 1600 nodes) confirms the expected growth.
 
 ## 8. Documents
 

@@ -114,9 +114,7 @@ def test_knapsack_matches_brute_force(seed):
     assert sum(values[i] for i in chosen) == best
 
 
-def test_dashboard_generated_with_key_numbers(tmp_path):
-    """The offline dashboard is built from the real run and embeds the headline
-    numbers (MST 5.81, wait 6.69 -> 2.03), with the JSON payload injected."""
+def _build_dashboard(path):
     from src import dashboard, dp, greedy, mst, sensitivity, wait_model
     g = Graph.from_csv()
     pe, _ = mst.prim(g)
@@ -128,11 +126,25 @@ def test_dashboard_generated_with_key_numbers(tmp_path):
     shifts = greedy.load_shifts()
     drivers = greedy.assign_drivers(shifts)
     assignment, left = dp.assign_groups(dp.load_demand(), dp.load_fleet())
+    dashboard.build(g, pe, ke, wait, sens, src, dst, drivers, shifts, assignment, left, path=str(path))
+    return path.read_text(encoding="utf-8")
+
+
+def test_dashboard_generated_with_key_numbers(tmp_path):
+    """The offline dashboard is built from the real run and embeds the headline
+    numbers (MST 5.81, wait 6.69 -> 2.03) with the JSON payload injected."""
     out = tmp_path / "dash.html"
-    dashboard.build(g, pe, ke, wait, sens, src, dst, drivers, shifts, assignment, left, path=str(out))
-    html = out.read_text(encoding="utf-8")
+    html = _build_dashboard(out)
     assert out.exists() and len(html) > 20000
     for number in ("5.81", "6.69", "2.03"):
         assert number in html, f"missing key number {number}"
-    assert "Campus Shuttle" in html
     assert "/*__PAYLOAD__*/null" not in html  # payload actually injected
+
+
+def test_dashboard_has_six_sections_and_is_offline(tmp_path):
+    """Story layout (six sections), and no external resources so it opens offline."""
+    import re
+    html = _build_dashboard(tmp_path / "dash.html")
+    for sec in ("hero", "problem", "solution", "try", "result", "trust"):
+        assert f'id="{sec}"' in html, f"missing section {sec}"
+    assert not re.search(r'(src|href)\s*=\s*["\']https?://', html), "external resource found"

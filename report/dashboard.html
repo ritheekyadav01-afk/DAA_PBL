@@ -1,844 +1,729 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campus Shuttle · DAA Dashboard</title>
+<title>Campus Shuttle · Cutting the wait</title>
 <style>
-/* ---------- design tokens ---------- */
+/* ===== Design tokens: white, near-black, ONE teal accent, ONE red for "before / problem" ===== */
 :root{
-  --bg:#ffffff; --surface:#ffffff; --surface-2:#f6f7f7; --border:#e6e8e8;
-  --ink:#0b0b0b; --ink-2:#55605e; --muted:#8a9693;
-  --teal:#0F766E; --teal-2:#0b5c56; --teal-soft:#e6f2f0;
-  --amber:#d97706; --red:#dc2626; --blue:#2563eb;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(16,40,38,.06);
-  --radius:16px; --gut:clamp(16px,4vw,40px);
-  --fs-base:16px;
-  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Inter",system-ui,sans-serif;
-}
-:root[data-theme="dark"]{
-  --bg:#0c0f0e; --surface:#131817; --surface-2:#1b2220; --border:#263029;
-  --ink:#f3f6f5; --ink-2:#aab6b2; --muted:#7d8a86;
-  --teal:#2dd4bf; --teal-2:#5eead4; --teal-soft:#10302c;
-  --amber:#fbbf24; --red:#f87171; --blue:#60a5fa;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  --bg:#ffffff; --ink:#0b0f0e; --muted:#4a5653; --line:#e3e8e7; --soft:#f5f8f7;
+  --teal:#0F766E; --teal-dark:#0b5c56; --teal-soft:#e6f3f1;
+  --red:#DC2626; --red-soft:#fdecec;
+  --nav-h:64px; --radius:18px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
-body{
-  background:var(--bg); color:var(--ink); font-family:var(--font); font-size:var(--fs-base);
-  line-height:1.5; -webkit-font-smoothing:antialiased; letter-spacing:-0.01em;
-}
-h1,h2,h3{letter-spacing:-0.02em; line-height:1.1; margin:0}
-a{color:var(--teal)}
-.wrap{max-width:1180px; margin:0 auto; padding:0 var(--gut)}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.reveal{opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1)}
+html{scroll-behavior:smooth; scroll-snap-type:y proximity}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font); font-size:17px; line-height:1.55; -webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(34px,5.4vw,60px); line-height:1.05; letter-spacing:-.025em; font-weight:800}
+h2{font-size:clamp(28px,4vw,44px); line-height:1.1; letter-spacing:-.02em; font-weight:800}
+h3{font-size:19px; line-height:1.25; font-weight:700}
+.lead{font-size:clamp(18px,2vw,22px); color:var(--muted); max-width:34em; margin-top:14px}
+.kicker{font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--teal); margin-bottom:12px}
+.wrap{max-width:1140px; margin:0 auto; padding:0 24px; width:100%}
+button,select{font-family:inherit; font-size:16px}
+.btn{border:0; border-radius:999px; padding:14px 26px; font-weight:700; font-size:17px; cursor:pointer; background:var(--teal); color:#fff; transition:background .2s, transform .2s}
+.btn:hover{background:var(--teal-dark); transform:translateY(-1px)}
+.btn.ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--teal); color:var(--teal)}
+:focus-visible{outline:3px solid var(--teal); outline-offset:2px; border-radius:6px}
+
+/* ===== sticky nav ===== */
+.nav{position:sticky; top:0; z-index:50; height:var(--nav-h); background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex; align-items:center; gap:18px; height:100%}
+.brand{font-weight:800; display:flex; align-items:center; gap:10px; white-space:nowrap}
+.brand i{width:12px; height:12px; border-radius:50%; background:var(--teal); box-shadow:0 0 0 4px var(--teal-soft)}
+.links{display:flex; gap:4px; flex:1; overflow-x:auto; scrollbar-width:none}
+.links::-webkit-scrollbar{display:none}
+.links a{color:var(--muted); text-decoration:none; font-weight:600; font-size:16px; padding:8px 14px; border-radius:999px; white-space:nowrap; transition:.2s}
+.links a:hover{color:var(--ink)}
+.links a.on{background:var(--teal-soft); color:var(--teal-dark)}
+.nav .btn{padding:10px 18px; font-size:15px; white-space:nowrap}
+.btn .sm{display:none}
+@media (max-width:560px){ .btn .sm{display:inline} }
+.progress{position:absolute; left:0; bottom:-1px; height:3px; width:0; background:var(--teal); transition:width .4s linear}
+
+/* ===== sections: one idea per screen ===== */
+.sec{min-height:calc(100vh - var(--nav-h)); min-height:calc(100svh - var(--nav-h)); display:flex; align-items:center; padding:56px 0; scroll-margin-top:var(--nav-h); scroll-snap-align:start}
+.sec:nth-of-type(even){background:var(--soft)}
+.grid{display:grid; gap:40px; align-items:center}
+.g2{grid-template-columns:1fr 1fr}
+#result .g2{grid-template-columns:.8fr 1.2fr}
+.g-map{grid-template-columns:.9fr 1.1fr}
+.g-try{grid-template-columns:1.05fr .95fr; align-items:start}
+.stack{display:flex; flex-direction:column; gap:16px}
+#try.sec{padding:36px 0}
+#try .card{padding:20px}
+#try .simple{margin-top:6px; padding:8px 14px}
+#try .path-text{min-height:0}
+#try .k-read{margin:0}
+#try h2{font-size:clamp(26px,3.4vw,38px)}
+.reveal{opacity:0; transform:translateY(22px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)}
 .reveal.in{opacity:1; transform:none}
-button{font-family:inherit; cursor:pointer}
-.btn{
-  border:1px solid var(--border); background:var(--surface); color:var(--ink);
-  padding:9px 14px; border-radius:10px; font-size:14px; font-weight:600;
-  display:inline-flex; align-items:center; gap:7px; transition:.15s; white-space:nowrap;
-}
-.btn:hover{border-color:var(--teal); color:var(--teal)}
-.btn.primary{background:var(--teal); border-color:var(--teal); color:#fff}
-.btn.primary:hover{background:var(--teal-2); color:#fff}
-.btn.ghost{background:transparent}
-.btn[aria-pressed="true"]{background:var(--teal); border-color:var(--teal); color:#fff}
 
-/* ---------- top bar ---------- */
-.topbar{
-  position:sticky; top:0; z-index:40; backdrop-filter:saturate(1.2) blur(10px);
-  background:color-mix(in srgb,var(--bg) 82%,transparent); border-bottom:1px solid var(--border);
-}
-.topbar .wrap{display:flex; align-items:center; gap:14px; height:58px}
-.brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px}
-.brand .dot{width:11px;height:11px;border-radius:50%;background:var(--teal); box-shadow:0 0 0 4px var(--teal-soft)}
-.topbar .spacer{flex:1}
+.card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:0 1px 2px rgba(0,0,0,.03), 0 10px 30px rgba(15,60,55,.06)}
+.simple{margin-top:16px; background:var(--teal-soft); border-radius:12px; padding:12px 16px; font-size:16px; color:var(--ink)}
+.simple b{color:var(--teal-dark)}
+.chips{display:flex; flex-wrap:wrap; gap:12px; margin-top:22px}
+.chip{border-radius:14px; padding:12px 18px; background:#fff; border:1px solid var(--line)}
+.chip b{display:block; font-size:28px; line-height:1.1; font-variant-numeric:tabular-nums}
+.chip span{font-size:15px; color:var(--muted)}
+.chip.red{background:var(--red-soft); border-color:#f6caca}
+.chip.red b{color:var(--red)}
+.chip.teal{background:var(--teal-soft); border-color:#bfe0db}
+.chip.teal b{color:var(--teal)}
 
-/* ---------- hero ---------- */
-.hero{padding:clamp(40px,7vw,86px) 0 30px}
-.eyebrow{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--teal)}
-.hero h1{font-size:clamp(30px,5.4vw,56px); margin:14px 0 10px; max-width:16ch}
-.hero .sub{font-size:clamp(16px,2vw,20px); color:var(--ink-2); max-width:62ch}
-.hero .team{margin-top:14px; font-size:14px; color:var(--muted)}
-.hero-grid{display:grid; grid-template-columns:1.3fr .85fr; gap:34px; align-items:center}
-.counter-card{
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:26px 28px; text-align:center;
-}
-.counter-card .lbl{font-size:13px; font-weight:600; color:var(--ink-2); text-transform:uppercase; letter-spacing:.08em}
-.bignum{font-size:clamp(52px,9vw,76px); font-weight:800; line-height:1; margin:10px 0 2px; color:var(--teal); font-variant-numeric:tabular-nums}
-.bignum .u{font-size:.3em; color:var(--ink-2); font-weight:700; margin-left:6px}
-.counter-card .flow{display:flex; align-items:center; justify-content:center; gap:10px; color:var(--ink-2); font-size:14px; margin-top:8px}
-.badge{display:inline-flex; align-items:center; gap:6px; background:var(--teal-soft); color:var(--teal-2);
-  font-weight:700; font-size:13px; padding:6px 11px; border-radius:999px}
-:root[data-theme="dark"] .badge{color:var(--teal-2)}
-.spark{height:40px;width:100%;margin-top:14px;display:block}
+/* ===== 1 hero ===== */
+#hero .num-card{text-align:center; padding:36px 28px}
+.big{font-size:clamp(76px,12vw,128px); font-weight:800; line-height:1; letter-spacing:-.04em; font-variant-numeric:tabular-nums}
+.big small{font-size:.26em; letter-spacing:0; margin-left:8px; color:var(--muted); font-weight:700}
+.ba{display:flex; justify-content:center; align-items:center; gap:16px; margin-top:18px; font-size:18px; flex-wrap:wrap}
+.ba .b{color:var(--red); font-weight:800}
+.ba .a{color:var(--teal); font-weight:800}
+.badge{display:inline-block; background:var(--teal); color:#fff; border-radius:999px; padding:6px 16px; font-weight:800; font-size:17px}
+.hero-actions{display:flex; gap:14px; margin-top:30px; flex-wrap:wrap}
 
-/* ---------- KPI ---------- */
-.kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin:30px 0 10px}
-.kpi{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow)}
-.kpi .n{font-size:32px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1}
-.kpi .k{font-size:13px; color:var(--ink-2); margin-top:6px; font-weight:600}
-.kpi .s{font-size:12px; color:var(--muted); margin-top:2px}
-
-/* ---------- sections ---------- */
-section{padding:48px 0}
-.sec-head{display:flex; align-items:end; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap}
-.sec-head h2{font-size:clamp(22px,3vw,30px)}
-.sec-head p{color:var(--ink-2); margin:6px 0 0; max-width:60ch; font-size:15px}
-
-/* ---------- algorithm stage ---------- */
-.tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px}
-.tab{border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
-  padding:8px 14px; border-radius:999px; font-size:14px; font-weight:600; transition:.15s}
-.tab:hover{color:var(--teal)}
-.tab[aria-selected="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
-:root[data-theme="dark"] .tab[aria-selected="true"]{background:var(--teal); border-color:var(--teal); color:#04110f}
-.stage{display:grid; grid-template-columns:1fr 310px; gap:18px}
-.viz{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px; min-height:420px; position:relative; overflow:hidden}
-.viz svg{display:block; width:100%; height:auto}
-.viz .scene-title{position:absolute; top:14px; left:16px; font-size:14px; font-weight:700; color:var(--ink-2)}
-.side{display:flex; flex-direction:column; gap:14px}
-.card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow)}
-.card h4{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 10px}
-.stat-row{display:flex; justify-content:space-between; align-items:baseline; padding:4px 0; font-size:14px}
-.stat-row b{font-variant-numeric:tabular-nums; font-size:16px}
-.log{font-family:ui-monospace,Menlo,monospace; font-size:12.5px; max-height:210px; overflow:auto; color:var(--ink-2)}
-.log div{padding:2px 0; border-bottom:1px dashed var(--border)}
-.log div.hot{color:var(--ink); font-weight:600}
-.ctrl{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:16px}
-.ctrl .sp{flex:1}
-.player{display:flex; align-items:center; gap:8px}
-input[type=range]{accent-color:var(--teal); cursor:pointer}
-select{font-family:inherit; font-size:14px; padding:7px 9px; border-radius:9px; border:1px solid var(--border);
-  background:var(--surface); color:var(--ink)}
-label.inl{font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:6px}
-.scrub{flex:1; min-width:120px}
-.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-2); margin-top:10px}
-.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-
-/* graph primitives */
-.edge{stroke:var(--border); stroke-width:2; transition:stroke .25s, stroke-width .25s, opacity .25s}
-:root[data-theme="dark"] .edge{stroke:#2b3531}
-.edge.teal{stroke:var(--teal); stroke-width:4.5}
-.edge.amber{stroke:var(--amber); stroke-width:4.5}
-.edge.red{stroke:var(--red); stroke-width:4; opacity:.9}
-.edge.dim{opacity:.35}
-.node{fill:var(--ink); transition:fill .25s, r .25s}
+/* ===== maps ===== */
+.mapwrap svg{display:block; width:100%; height:auto; max-height:68vh}
+.lbl{font-weight:600; fill:var(--ink); paint-order:stroke; stroke:#fff; stroke-width:5px; stroke-linejoin:round}
+.road{stroke:#d3dad8; stroke-width:3; stroke-linecap:round}
+.node{fill:var(--ink); stroke:#fff; stroke-width:3; transition:fill .3s}
 .node.on{fill:var(--teal)}
-.node.cur{fill:var(--amber)}
-.node.src{fill:var(--blue)}
-.nlabel{font-size:14px; fill:var(--ink); font-weight:600; paint-order:stroke; stroke:var(--surface); stroke-width:3px}
-.ewt{font-size:11px; fill:var(--muted); paint-order:stroke; stroke:var(--surface); stroke-width:3px}
+.node.red{fill:var(--red)}
+.caption{margin-top:12px; font-weight:700; font-size:18px}
+.caption.red{color:var(--red)}
 
-/* heatmap */
-.hm-cell{stroke:var(--surface); stroke-width:1.5; cursor:crosshair}
-.hm-axis{font-size:11px; fill:var(--ink-2)}
+/* ===== 3 pipeline ===== */
+.steps{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:36px; counter-reset:s}
+.step{position:relative; display:flex; flex-direction:column; gap:10px}
+.step .ic{width:52px; height:52px; border-radius:14px; background:var(--teal-soft); display:grid; place-items:center}
+.step .ic svg{width:28px; height:28px; stroke:var(--teal); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.step .n{position:absolute; top:18px; right:20px; font-weight:800; color:#b8c4c1; font-size:15px}
+.step .algos{font-size:15px; color:var(--teal-dark); font-weight:600}
+.step .simple{margin-top:2px; font-size:16px}
+.step .res{margin-top:auto; padding-top:10px; border-top:1px solid var(--line); font-weight:800; font-size:18px}
+.step .res small{display:block; font-weight:600; color:var(--muted); font-size:15px; margin-top:2px}
 
-/* gantt / knapsack / bars */
-.bar{transition:.4s}
-.seat{transition:.3s}
-.tooltip{position:fixed; z-index:99; pointer-events:none; background:var(--ink); color:var(--bg);
-  font-size:12.5px; padding:7px 10px; border-radius:8px; opacity:0; transform:translateY(4px);
-  transition:opacity .12s; max-width:240px; box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.tooltip.show{opacity:1; transform:none}
+/* ===== 4 try it ===== */
+.row{display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin:12px 0}
+.row label{display:flex; flex-direction:column; gap:6px; font-weight:700; font-size:15px; color:var(--muted)}
+select{padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); min-width:180px; font-weight:600}
+select:hover{border-color:var(--teal)}
+.route-out{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; min-height:34px}
+.route-out b{font-size:34px; color:var(--teal); font-variant-numeric:tabular-nums}
+.route-out span{color:var(--muted)}
+.path-text{margin-top:4px; font-size:16px; color:var(--ink); min-height:48px}
+input[type=range]{width:100%; accent-color:var(--teal); height:32px}
+.k-read{display:flex; align-items:baseline; gap:12px; margin:6px 0 4px}
+.k-read b{font-size:48px; color:var(--teal); line-height:1; font-variant-numeric:tabular-nums}
+.k-read span{color:var(--muted)}
+.fleet svg{width:100%; height:auto; display:block}
+.tick{font-size:15px; fill:var(--muted)}
 
-/* fleet + complexity */
-.grid2{display:grid; grid-template-columns:1.15fr .85fr; gap:18px}
-.ctable{width:100%; border-collapse:collapse; font-size:14px}
-.ctable td,.ctable th{text-align:left; padding:10px 8px; border-bottom:1px solid var(--border)}
-.ctable th{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted)}
-.ctable .bo{font-family:ui-monospace,Menlo,monospace; color:var(--teal); font-weight:600}
-.note{background:var(--teal-soft); border:1px solid color-mix(in srgb,var(--teal) 25%,transparent);
-  border-radius:14px; padding:18px 20px; display:flex; gap:14px; align-items:flex-start}
-.note .ic{font-size:20px; line-height:1}
-.note b{color:var(--teal-2)}
-:root[data-theme="dark"] .note b{color:var(--teal-2)}
-.assume{font-size:13px; color:var(--ink-2); margin:10px 0 0; padding-left:18px}
-.assume li{margin:3px 0}
-footer{padding:40px 0 60px; color:var(--muted); font-size:13px; border-top:1px solid var(--border)}
-kbd{font-family:ui-monospace,Menlo,monospace; background:var(--surface-2); border:1px solid var(--border);
-  border-bottom-width:2px; border-radius:6px; padding:1px 6px; font-size:12px; color:var(--ink-2)}
+/* ===== 5 result ===== */
+.bars{display:flex; gap:22px; align-items:flex-end; height:280px; padding:0 4px; border-bottom:2px solid var(--line)}
+.col{flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; gap:8px}
+.col .val{font-weight:800; font-size:26px; font-variant-numeric:tabular-nums}
+.col .bar{width:100%; border-radius:12px 12px 0 0; height:0; transition:height 1.2s cubic-bezier(.2,.7,.2,1)}
+.col-labels{display:flex; gap:22px; padding:10px 4px 0}
+.col-labels div{flex:1; text-align:center; font-size:16px; font-weight:600; line-height:1.3}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:16px; font-weight:600}
+.legend i{display:inline-block; width:14px; height:14px; border-radius:50%; margin-right:6px; vertical-align:-2px}
+.takeaway{margin-top:22px; font-size:clamp(20px,2.4vw,28px); font-weight:800; text-align:center}
+.takeaway em{font-style:normal; color:var(--teal)}
 
-@media (max-width:900px){
-  .hero-grid{grid-template-columns:1fr} .stage{grid-template-columns:1fr}
-  .kpis{grid-template-columns:repeat(2,1fr)} .grid2{grid-template-columns:1fr}
+#result .mapwrap svg{max-height:54vh}
+#result .grid{align-items:stretch}
+#result.sec{padding:36px 0}
+
+/* ===== 6 trust ===== */
+.trust{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:34px}
+.trust .card h3{margin:10px 0 6px}
+.trust .card p{color:var(--muted); font-size:16px}
+.trust .ok{display:inline-grid; place-items:center; width:40px; height:40px; border-radius:50%; background:var(--teal-soft); color:var(--teal); font-weight:800; font-size:20px}
+.trust ul{margin:10px 0 0; padding:0; list-style:none; font-size:16px; color:var(--ink)}
+.trust li{margin:6px 0; padding-left:2px}
+details{margin-top:26px; border:1px solid var(--line); border-radius:var(--radius); background:#fff}
+summary{cursor:pointer; padding:18px 22px; font-weight:800; font-size:18px; list-style:none}
+summary::after{content:"+"; float:right; color:var(--teal); font-size:24px; line-height:1}
+details[open] summary::after{content:"–"}
+.tbl-wrap{overflow-x:auto; padding:0 22px 22px}
+table{border-collapse:collapse; width:100%; min-width:720px; font-size:16px}
+th,td{text-align:left; padding:11px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+td.bo{font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--teal-dark); font-weight:700; white-space:nowrap}
+td small{display:block; color:var(--muted); font-size:15px}
+footer{padding:36px 0 56px; color:var(--muted); font-size:15px; border-top:1px solid var(--line)}
+
+/* ===== responsive ===== */
+@media (max-width:960px){
+  .g2,.g-map,.g-try,#result .g2{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .trust{grid-template-columns:1fr}
+  .sec{min-height:auto; padding:48px 0}
+  .brand span{display:none}
 }
-@media (max-width:560px){ .kpis{grid-template-columns:1fr} }
-@media (prefers-reduced-motion:reduce){ .reveal{transition:none; opacity:1; transform:none} }
+@media (max-width:560px){
+  .btn .lg{display:none}
+  .steps{grid-template-columns:1fr}
+  .wrap{padding:0 16px}
+  .bars{gap:12px} .col-labels{gap:12px}
+  .nav .btn{padding:9px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1; transform:none; transition:none}
+  .col .bar{transition:none}
+  .btn{transition:none}
+}
 </style>
 </head>
 <body>
-<div class="tooltip" id="tip"></div>
 
-<div class="topbar"><div class="wrap">
-  <span class="brand"><span class="dot"></span> Campus Shuttle · DAA</span>
-  <span class="spacer"></span>
-  <button class="btn primary" id="demoBtn">▶ Demo mode</button>
-  <button class="btn ghost" id="themeBtn" title="Toggle theme">🌙 Theme</button>
-</div></div>
-
-<!-- HERO -->
-<header class="hero"><div class="wrap hero-grid">
-  <div>
-    <div class="eyebrow">Design &amp; Analysis of Algorithms · Group Project</div>
-    <h1 id="heroTitle">Campus Shuttle Routing &amp; Capacity Scheduling</h1>
-    <p class="sub" id="heroSub"></p>
-    <div class="team" id="heroTeam"></div>
-  </div>
-  <div class="counter-card reveal">
-    <div class="lbl">Average passenger wait</div>
-    <div class="bignum"><span id="waitCounter">6.69</span><span class="u">min</span></div>
-    <div class="flow">
-      <span id="flowFrom">6.69</span> <span>→</span> <span id="flowTo" style="color:var(--teal);font-weight:700">2.03</span> min
-      <span class="badge" id="fasterBadge">● 70% faster</span>
+<nav class="nav" aria-label="Sections">
+  <div class="wrap">
+    <div class="brand"><i></i><span>Campus Shuttle</span></div>
+    <div class="links" id="links">
+      <a href="#hero">Start</a><a href="#problem">Problem</a><a href="#solution">Solution</a>
+      <a href="#try">Try it</a><a href="#result">Result</a><a href="#trust">Trust</a>
     </div>
-    <svg class="spark" id="spark" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <button class="btn" id="presentBtn" aria-pressed="false">▶ <span class="lg">Presentation mode</span><span class="sm">Present</span></button>
   </div>
-</div></header>
+  <div class="progress" id="progress"></div>
+</nav>
 
-<div class="wrap">
-  <div class="kpis" id="kpis"></div>
-</div>
-
-<!-- ALGORITHM STAGE -->
-<section id="stage"><div class="wrap">
-  <div class="sec-head">
-    <div>
-      <h2>Interactive algorithm stage</h2>
-      <p>Every number below comes from the real <span class="mono">python main.py</span> run. Pick an algorithm,
-         then Play / Step through it. <kbd>Space</kbd> play·pause, <kbd>←</kbd><kbd>→</kbd> step.</p>
+<!-- 1 · HERO -->
+<section class="sec" id="hero"><div class="wrap grid g2">
+  <div class="reveal">
+    <div class="kicker" id="heroSub"></div>
+    <h1 id="heroTitle"></h1>
+    <p class="lead" id="heroLead"></p>
+    <div class="hero-actions">
+      <button class="btn" id="startBtn">Start the tour ↓</button>
     </div>
   </div>
-  <div class="tabs" id="tabs" role="tablist"></div>
-  <div class="stage">
-    <div class="viz" id="viz"><div class="scene-title" id="sceneTitle"></div></div>
-    <div class="side" id="side"></div>
-  </div>
-  <div class="ctrl">
-    <div class="player">
-      <button class="btn primary" id="playBtn">▶ Play</button>
-      <button class="btn" id="stepBtn">Step ▸</button>
-      <button class="btn" id="resetBtn">↺ Reset</button>
-    </div>
-    <input type="range" class="scrub" id="scrub" min="0" max="0" value="0">
-    <span class="sp"></span>
-    <label class="inl">Speed <input type="range" id="speed" min="0.4" max="3" step="0.1" value="1" style="width:110px"></label>
-    <span class="mono" id="speedVal" style="font-size:13px;color:var(--ink-2);width:34px">1.0×</span>
-  </div>
-  <div class="legend" id="legend"></div>
-</div></section>
-
-<!-- FLEET + COMPLEXITY -->
-<section id="analysis"><div class="wrap">
-  <div class="grid2">
-    <div class="card">
-      <h4>Fleet size vs average wait</h4>
-      <svg id="fleetChart" viewBox="0 0 560 320" style="width:100%;height:auto"></svg>
-      <div class="legend"><span><i style="background:var(--teal)"></i>avg wait (min)</span>
-        <span><i style="background:var(--amber)"></i>knee — diminishing returns</span></div>
-    </div>
-    <div class="card">
-      <h4>Time complexity</h4>
-      <table class="ctable"><thead><tr><th>Algorithm</th><th>Big-O</th></tr></thead>
-        <tbody id="complexBody"></tbody></table>
-    </div>
+  <div class="card num-card reveal">
+    <div style="color:var(--muted);font-weight:700">Average wait per passenger</div>
+    <div class="big" id="heroNum" style="color:var(--red)">0.00<small>min</small></div>
+    <div class="ba"><span class="b" id="heroBefore"></span><span>→</span><span class="a" id="heroAfter"></span><span class="badge" id="heroBadge"></span></div>
   </div>
 </div></section>
 
-<!-- DATA NOTE -->
-<section style="padding-top:0"><div class="wrap">
-  <div class="note reveal">
-    <div class="ic">📍</div>
-    <div>
-      <div id="dataNote"></div>
-      <ul class="assume" id="assumeList"></ul>
+<!-- 2 · THE PROBLEM -->
+<section class="sec" id="problem"><div class="wrap grid g-map">
+  <div class="reveal">
+    <div class="kicker">The problem</div>
+    <h2>One shuttle, one fixed order.</h2>
+    <p class="lead">Today's loop visits the stops in list order, so it zig-zags across campus. A long loop means a long wait.</p>
+    <div class="chips">
+      <div class="chip red"><b id="pLoop"></b><span>one full loop</span></div>
+      <div class="chip red"><b id="pWait"></b><span>average wait</span></div>
+    </div>
+    <div class="simple"><b>In simple words:</b> on average you wait about half of one loop. A <span id="pLoopTxt"></span>-minute loop means roughly <span id="pWaitTxt"></span> minutes at the stop.</div>
+  </div>
+  <div class="card mapwrap reveal">
+    <div id="mapProblem"></div>
+    <div class="caption red">One shuttle, fixed order: long loop, long waits.</div>
+  </div>
+</div></section>
+
+<!-- 3 · HOW WE SOLVE IT -->
+<section class="sec" id="solution"><div class="wrap">
+  <div class="reveal">
+    <div class="kicker">How we solve it</div>
+    <h2>Four steps, from map to plan.</h2>
+    <p class="lead">Each step uses a classic algorithm from the course. The numbers below are results from our own run.</p>
+  </div>
+  <div class="steps" id="steps"></div>
+</div></section>
+
+<!-- 4 · TRY IT -->
+<section class="sec" id="try"><div class="wrap">
+  <div class="reveal" style="margin-bottom:12px">
+    <div class="kicker">Try it</div>
+    <h2>Plan a trip. Then pick a fleet size.</h2>
+  </div>
+  <div class="grid g-try">
+    <div class="card mapwrap reveal"><div id="mapTry"></div></div>
+    <div class="stack">
+      <div class="card reveal">
+        <h3>Plan a trip</h3>
+        <div class="row">
+          <label>From<select id="selFrom"></select></label>
+          <label>To<select id="selTo"></select></label>
+        </div>
+        <div class="route-out"><b id="routeMin">–</b><span id="routeSub"></span></div>
+        <div class="path-text" id="routePath"></div>
+      </div>
+      <div class="card fleet reveal">
+        <h3>How many shuttles?</h3>
+        <input type="range" id="kSlider" min="1" max="6" step="1" value="3" aria-label="Number of shuttles">
+        <div class="k-read"><b id="kWait">–</b><span id="kText"></span></div>
+        <svg id="fleetChart" viewBox="0 0 520 190" role="img" aria-label="Average wait against number of shuttles"></svg>
+        <div class="simple" id="kNote"></div>
+      </div>
     </div>
   </div>
+</div></section>
+
+<!-- 5 · THE RESULT -->
+<section class="sec" id="result"><div class="wrap">
+  <div class="reveal">
+    <div class="kicker">The result</div>
+    <h2>Same campus, much shorter waits.</h2>
+  </div>
+  <div class="grid g2" style="margin-top:30px">
+    <div class="card reveal">
+      <h3 style="margin-bottom:14px">Average wait (minutes)</h3>
+      <div class="bars" id="bars"></div>
+      <div class="col-labels" id="barLabels"></div>
+    </div>
+    <div class="card mapwrap reveal">
+      <div id="mapResult"></div>
+      <div class="legend" id="resLegend"></div>
+    </div>
+  </div>
+  <p class="takeaway reveal" id="takeaway"></p>
+</div></section>
+
+<!-- 6 · TRUST AND LIMITS -->
+<section class="sec" id="trust"><div class="wrap">
+  <div class="reveal">
+    <div class="kicker">Trust and limits</div>
+    <h2>What you can rely on, and what you can't.</h2>
+  </div>
+  <div class="trust" id="trustCards"></div>
+  <details class="reveal">
+    <summary>Technical details (for the professor)</summary>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Algorithm</th><th>Time</th><th>Result on our data</th></tr></thead>
+      <tbody id="algoBody"></tbody>
+    </table></div>
+  </details>
 </div></section>
 
 <footer><div class="wrap" id="footer"></div></footer>
 
 <script>
 "use strict";
-const DATA = {"meta": {"title": "Campus Shuttle Routing & Capacity Scheduling", "subtitle": "Design & Analysis of Algorithms — real campus coordinates, assumed 20 km/h", "teams": "D. Ritheek · M. Srilakshmi · B. Deekshan · P. Priyakaran · G. Madhan"}, "kpi": {"stops": 14, "roads": 22, "mstCost": 5.81, "drivers": 4, "shifts": 18, "tests": 203, "before": 6.69, "after": 2.03, "improvement": 70}, "stops": [{"id": "S1", "name": "Main Gate", "lat": 17.649906, "lng": 77.799699, "x": 0.6136, "y": 0.0}, {"id": "S2", "name": "Bus Stop", "lat": 17.647008, "lng": 77.798891, "x": 0.5283, "y": 0.3209}, {"id": "S3", "name": "Academic Blocks", "lat": 17.647007, "lng": 77.800709, "x": 0.7201, "y": 0.321}, {"id": "S4", "name": "Library", "lat": 17.646345, "lng": 77.799293, "x": 0.5707, "y": 0.3943}, {"id": "S5", "name": "Rise Cafe", "lat": 17.646786, "lng": 77.799511, "x": 0.5937, "y": 0.3454}, {"id": "S6", "name": "Care and Cure", "lat": 17.646045, "lng": 77.799145, "x": 0.5551, "y": 0.4275}, {"id": "S7", "name": "Boys Hostel", "lat": 17.643174, "lng": 77.798692, "x": 0.5073, "y": 0.7453}, {"id": "S8", "name": "Girls Hostel", "lat": 17.643364, "lng": 77.798182, "x": 0.4535, "y": 0.7243}, {"id": "S9", "name": "i Create", "lat": 17.644102, "lng": 77.797689, "x": 0.4015, "y": 0.6426}, {"id": "S10", "name": "Blu Embers", "lat": 17.643742, "lng": 77.797082, "x": 0.3375, "y": 0.6825}, {"id": "S11", "name": "Oval", "lat": 17.642759, "lng": 77.797984, "x": 0.4326, "y": 0.7913}, {"id": "S12", "name": "Race Arena", "lat": 17.64127, "lng": 77.798904, "x": 0.5297, "y": 0.9562}, {"id": "S13", "name": "Cricket Ground", "lat": 17.641432, "lng": 77.796536, "x": 0.2799, "y": 0.9382}, {"id": "S14", "name": "SportX", "lat": 17.640874, "lng": 77.797746, "x": 0.4075, "y": 1.0}], "edges": [{"u": "S1", "v": "S2", "w": 1.0}, {"u": "S1", "v": "S6", "w": 1.3}, {"u": "S2", "v": "S6", "w": 0.33}, {"u": "S3", "v": "S4", "w": 0.5}, {"u": "S3", "v": "S5", "w": 0.39}, {"u": "S3", "v": "S6", "w": 0.59}, {"u": "S3", "v": "S9", "w": 1.36}, {"u": "S4", "v": "S5", "w": 0.16}, {"u": "S4", "v": "S8", "w": 1.06}, {"u": "S4", "v": "S9", "w": 0.91}, {"u": "S7", "v": "S8", "w": 0.17}, {"u": "S10", "v": "S8", "w": 0.37}, {"u": "S10", "v": "S9", "w": 0.23}, {"u": "S10", "v": "S11", "w": 0.44}, {"u": "S11", "v": "S4", "w": 1.27}, {"u": "S11", "v": "S7", "w": 0.26}, {"u": "S11", "v": "S12", "w": 0.58}, {"u": "S11", "v": "S13", "w": 0.64}, {"u": "S11", "v": "S14", "w": 0.63}, {"u": "S12", "v": "S13", "w": 0.75}, {"u": "S12", "v": "S14", "w": 0.39}, {"u": "S13", "v": "S14", "w": 0.43}], "defaults": {"src": "S2", "dst": "S12"}, "mst": {"total": 5.81, "prim": [{"u": "S2", "v": "S6", "w": 0.33, "total": 0.33}, {"u": "S6", "v": "S3", "w": 0.59, "total": 0.92}, {"u": "S3", "v": "S5", "w": 0.39, "total": 1.31}, {"u": "S5", "v": "S4", "w": 0.16, "total": 1.47}, {"u": "S4", "v": "S9", "w": 0.91, "total": 2.38}, {"u": "S9", "v": "S10", "w": 0.23, "total": 2.61}, {"u": "S10", "v": "S8", "w": 0.37, "total": 2.98}, {"u": "S8", "v": "S7", "w": 0.17, "total": 3.15}, {"u": "S7", "v": "S11", "w": 0.26, "total": 3.41}, {"u": "S11", "v": "S12", "w": 0.58, "total": 3.99}, {"u": "S12", "v": "S14", "w": 0.39, "total": 4.38}, {"u": "S14", "v": "S13", "w": 0.43, "total": 4.81}, {"u": "S2", "v": "S1", "w": 1.0, "total": 5.81}], "kruskal": [{"u": "S4", "v": "S5", "w": 0.16, "accept": true, "total": 0.16}, {"u": "S7", "v": "S8", "w": 0.17, "accept": true, "total": 0.33}, {"u": "S10", "v": "S9", "w": 0.23, "accept": true, "total": 0.56}, {"u": "S11", "v": "S7", "w": 0.26, "accept": true, "total": 0.82}, {"u": "S2", "v": "S6", "w": 0.33, "accept": true, "total": 1.15}, {"u": "S10", "v": "S8", "w": 0.37, "accept": true, "total": 1.52}, {"u": "S3", "v": "S5", "w": 0.39, "accept": true, "total": 1.91}, {"u": "S12", "v": "S14", "w": 0.39, "accept": true, "total": 2.3}, {"u": "S13", "v": "S14", "w": 0.43, "accept": true, "total": 2.73}, {"u": "S10", "v": "S11", "w": 0.44, "accept": false, "total": 2.73}, {"u": "S3", "v": "S4", "w": 0.5, "accept": false, "total": 2.73}, {"u": "S11", "v": "S12", "w": 0.58, "accept": true, "total": 3.31}, {"u": "S3", "v": "S6", "w": 0.59, "accept": true, "total": 3.9}, {"u": "S11", "v": "S14", "w": 0.63, "accept": false, "total": 3.9}, {"u": "S11", "v": "S13", "w": 0.64, "accept": false, "total": 3.9}, {"u": "S12", "v": "S13", "w": 0.75, "accept": false, "total": 3.9}, {"u": "S4", "v": "S9", "w": 0.91, "accept": true, "total": 4.81}, {"u": "S1", "v": "S2", "w": 1.0, "accept": true, "total": 5.81}, {"u": "S4", "v": "S8", "w": 1.06, "accept": false, "total": 5.81}, {"u": "S11", "v": "S4", "w": 1.27, "accept": false, "total": 5.81}, {"u": "S1", "v": "S6", "w": 1.3, "accept": false, "total": 5.81}, {"u": "S3", "v": "S9", "w": 1.36, "accept": false, "total": 5.81}], "edges": [["S1", "S2", 1.0], ["S2", "S6", 0.33], ["S6", "S3", 0.59], ["S3", "S5", 0.39], ["S5", "S4", 0.16], ["S4", "S9", 0.91], ["S9", "S10", 0.23], ["S10", "S8", 0.37], ["S8", "S7", 0.17], ["S7", "S11", 0.26], ["S11", "S12", 0.58], ["S12", "S14", 0.39], ["S14", "S13", 0.43]]}, "dijkstra": {"S1": {"order": [{"v": "S1", "dist": 0.0}, {"v": "S2", "dist": 1.0}, {"v": "S6", "dist": 1.3}, {"v": "S3", "dist": 1.89}, {"v": "S5", "dist": 2.28}, {"v": "S4", "dist": 2.39}, {"v": "S9", "dist": 3.25}, {"v": "S8", "dist": 3.45}, {"v": "S10", "dist": 3.48}, {"v": "S7", "dist": 3.62}, {"v": "S11", "dist": 3.66}, {"v": "S12", "dist": 4.24}, {"v": "S14", "dist": 4.29}, {"v": "S13", "dist": 4.3}], "prev": {"S1": null, "S2": "S1", "S3": "S6", "S4": "S3", "S5": "S3", "S6": "S1", "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 0.0, "S2": 1.0, "S3": 1.89, "S4": 2.39, "S5": 2.28, "S6": 1.3, "S7": 3.62, "S8": 3.45, "S9": 3.25, "S10": 3.48, "S11": 3.66, "S12": 4.24, "S13": 4.3, "S14": 4.29}}, "S2": {"order": [{"v": "S2", "dist": 0.0}, {"v": "S6", "dist": 0.33}, {"v": "S3", "dist": 0.92}, {"v": "S1", "dist": 1.0}, {"v": "S5", "dist": 1.31}, {"v": "S4", "dist": 1.42}, {"v": "S9", "dist": 2.28}, {"v": "S8", "dist": 2.48}, {"v": "S10", "dist": 2.51}, {"v": "S7", "dist": 2.65}, {"v": "S11", "dist": 2.69}, {"v": "S12", "dist": 3.27}, {"v": "S14", "dist": 3.32}, {"v": "S13", "dist": 3.33}], "prev": {"S1": "S2", "S2": null, "S3": "S6", "S4": "S3", "S5": "S3", "S6": "S2", "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 1.0, "S2": 0.0, "S3": 0.92, "S4": 1.42, "S5": 1.31, "S6": 0.33, "S7": 2.65, "S8": 2.48, "S9": 2.28, "S10": 2.51, "S11": 2.69, "S12": 3.27, "S13": 3.33, "S14": 3.32}}, "S3": {"order": [{"v": "S3", "dist": 0.0}, {"v": "S5", "dist": 0.39}, {"v": "S4", "dist": 0.5}, {"v": "S6", "dist": 0.59}, {"v": "S2", "dist": 0.92}, {"v": "S9", "dist": 1.36}, {"v": "S8", "dist": 1.56}, {"v": "S10", "dist": 1.59}, {"v": "S7", "dist": 1.73}, {"v": "S11", "dist": 1.77}, {"v": "S1", "dist": 1.89}, {"v": "S12", "dist": 2.35}, {"v": "S14", "dist": 2.4}, {"v": "S13", "dist": 2.41}], "prev": {"S1": "S6", "S2": "S6", "S3": null, "S4": "S3", "S5": "S3", "S6": "S3", "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 1.89, "S2": 0.92, "S3": 0.0, "S4": 0.5, "S5": 0.39, "S6": 0.59, "S7": 1.73, "S8": 1.56, "S9": 1.36, "S10": 1.59, "S11": 1.77, "S12": 2.35, "S13": 2.41, "S14": 2.4}}, "S4": {"order": [{"v": "S4", "dist": 0.0}, {"v": "S5", "dist": 0.16}, {"v": "S3", "dist": 0.5}, {"v": "S9", "dist": 0.91}, {"v": "S8", "dist": 1.06}, {"v": "S6", "dist": 1.09}, {"v": "S10", "dist": 1.14}, {"v": "S7", "dist": 1.23}, {"v": "S11", "dist": 1.27}, {"v": "S2", "dist": 1.42}, {"v": "S12", "dist": 1.85}, {"v": "S14", "dist": 1.9}, {"v": "S13", "dist": 1.91}, {"v": "S1", "dist": 2.39}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": null, "S5": "S4", "S6": "S3", "S7": "S8", "S8": "S4", "S9": "S4", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 2.39, "S2": 1.42, "S3": 0.5, "S4": 0.0, "S5": 0.16, "S6": 1.09, "S7": 1.23, "S8": 1.06, "S9": 0.91, "S10": 1.14, "S11": 1.27, "S12": 1.85, "S13": 1.91, "S14": 1.9}}, "S5": {"order": [{"v": "S5", "dist": 0.0}, {"v": "S4", "dist": 0.16}, {"v": "S3", "dist": 0.39}, {"v": "S6", "dist": 0.98}, {"v": "S9", "dist": 1.07}, {"v": "S8", "dist": 1.22}, {"v": "S10", "dist": 1.3}, {"v": "S2", "dist": 1.31}, {"v": "S7", "dist": 1.39}, {"v": "S11", "dist": 1.43}, {"v": "S12", "dist": 2.01}, {"v": "S14", "dist": 2.06}, {"v": "S13", "dist": 2.07}, {"v": "S1", "dist": 2.28}], "prev": {"S1": "S6", "S2": "S6", "S3": "S5", "S4": "S5", "S5": null, "S6": "S3", "S7": "S8", "S8": "S4", "S9": "S4", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 2.28, "S2": 1.31, "S3": 0.39, "S4": 0.16, "S5": 0.0, "S6": 0.98, "S7": 1.39, "S8": 1.22, "S9": 1.07, "S10": 1.3, "S11": 1.43, "S12": 2.01, "S13": 2.07, "S14": 2.06}}, "S6": {"order": [{"v": "S6", "dist": 0.0}, {"v": "S2", "dist": 0.33}, {"v": "S3", "dist": 0.59}, {"v": "S5", "dist": 0.98}, {"v": "S4", "dist": 1.09}, {"v": "S1", "dist": 1.3}, {"v": "S9", "dist": 1.95}, {"v": "S8", "dist": 2.15}, {"v": "S10", "dist": 2.18}, {"v": "S7", "dist": 2.32}, {"v": "S11", "dist": 2.36}, {"v": "S12", "dist": 2.94}, {"v": "S14", "dist": 2.99}, {"v": "S13", "dist": 3.0}], "prev": {"S1": "S6", "S2": "S6", "S3": "S6", "S4": "S3", "S5": "S3", "S6": null, "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 1.3, "S2": 0.33, "S3": 0.59, "S4": 1.09, "S5": 0.98, "S6": 0.0, "S7": 2.32, "S8": 2.15, "S9": 1.95, "S10": 2.18, "S11": 2.36, "S12": 2.94, "S13": 3.0, "S14": 2.99}}, "S7": {"order": [{"v": "S7", "dist": 0.0}, {"v": "S8", "dist": 0.17}, {"v": "S11", "dist": 0.26}, {"v": "S10", "dist": 0.54}, {"v": "S9", "dist": 0.77}, {"v": "S12", "dist": 0.84}, {"v": "S14", "dist": 0.89}, {"v": "S13", "dist": 0.9}, {"v": "S4", "dist": 1.23}, {"v": "S5", "dist": 1.39}, {"v": "S3", "dist": 1.73}, {"v": "S6", "dist": 2.32}, {"v": "S2", "dist": 2.65}, {"v": "S1", "dist": 3.62}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S8", "S5": "S4", "S6": "S3", "S7": null, "S8": "S7", "S9": "S10", "S10": "S8", "S11": "S7", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.62, "S2": 2.65, "S3": 1.73, "S4": 1.23, "S5": 1.39, "S6": 2.32, "S7": 0.0, "S8": 0.17, "S9": 0.77, "S10": 0.54, "S11": 0.26, "S12": 0.84, "S13": 0.9, "S14": 0.89}}, "S8": {"order": [{"v": "S8", "dist": 0.0}, {"v": "S7", "dist": 0.17}, {"v": "S10", "dist": 0.37}, {"v": "S11", "dist": 0.43}, {"v": "S9", "dist": 0.6}, {"v": "S12", "dist": 1.01}, {"v": "S14", "dist": 1.06}, {"v": "S4", "dist": 1.06}, {"v": "S13", "dist": 1.07}, {"v": "S5", "dist": 1.22}, {"v": "S3", "dist": 1.56}, {"v": "S6", "dist": 2.15}, {"v": "S2", "dist": 2.48}, {"v": "S1", "dist": 3.45}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S8", "S5": "S4", "S6": "S3", "S7": "S8", "S8": null, "S9": "S10", "S10": "S8", "S11": "S7", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.45, "S2": 2.48, "S3": 1.56, "S4": 1.06, "S5": 1.22, "S6": 2.15, "S7": 0.17, "S8": 0.0, "S9": 0.6, "S10": 0.37, "S11": 0.43, "S12": 1.01, "S13": 1.07, "S14": 1.06}}, "S9": {"order": [{"v": "S9", "dist": 0.0}, {"v": "S10", "dist": 0.23}, {"v": "S8", "dist": 0.6}, {"v": "S11", "dist": 0.67}, {"v": "S7", "dist": 0.77}, {"v": "S4", "dist": 0.91}, {"v": "S5", "dist": 1.07}, {"v": "S12", "dist": 1.25}, {"v": "S14", "dist": 1.3}, {"v": "S13", "dist": 1.31}, {"v": "S3", "dist": 1.36}, {"v": "S6", "dist": 1.95}, {"v": "S2", "dist": 2.28}, {"v": "S1", "dist": 3.25}], "prev": {"S1": "S6", "S2": "S6", "S3": "S9", "S4": "S9", "S5": "S4", "S6": "S3", "S7": "S8", "S8": "S10", "S9": null, "S10": "S9", "S11": "S10", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.25, "S2": 2.28, "S3": 1.36, "S4": 0.91, "S5": 1.07, "S6": 1.95, "S7": 0.77, "S8": 0.6, "S9": 0.0, "S10": 0.23, "S11": 0.67, "S12": 1.25, "S13": 1.31, "S14": 1.3}}, "S10": {"order": [{"v": "S10", "dist": 0.0}, {"v": "S9", "dist": 0.23}, {"v": "S8", "dist": 0.37}, {"v": "S11", "dist": 0.44}, {"v": "S7", "dist": 0.54}, {"v": "S12", "dist": 1.02}, {"v": "S14", "dist": 1.07}, {"v": "S13", "dist": 1.08}, {"v": "S4", "dist": 1.14}, {"v": "S5", "dist": 1.3}, {"v": "S3", "dist": 1.59}, {"v": "S6", "dist": 2.18}, {"v": "S2", "dist": 2.51}, {"v": "S1", "dist": 3.48}], "prev": {"S1": "S6", "S2": "S6", "S3": "S9", "S4": "S9", "S5": "S4", "S6": "S3", "S7": "S8", "S8": "S10", "S9": "S10", "S10": null, "S11": "S10", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.48, "S2": 2.51, "S3": 1.59, "S4": 1.14, "S5": 1.3, "S6": 2.18, "S7": 0.54, "S8": 0.37, "S9": 0.23, "S10": 0.0, "S11": 0.44, "S12": 1.02, "S13": 1.08, "S14": 1.07}}, "S11": {"order": [{"v": "S11", "dist": 0.0}, {"v": "S7", "dist": 0.26}, {"v": "S8", "dist": 0.43}, {"v": "S10", "dist": 0.44}, {"v": "S12", "dist": 0.58}, {"v": "S14", "dist": 0.63}, {"v": "S13", "dist": 0.64}, {"v": "S9", "dist": 0.67}, {"v": "S4", "dist": 1.27}, {"v": "S5", "dist": 1.43}, {"v": "S3", "dist": 1.77}, {"v": "S6", "dist": 2.36}, {"v": "S2", "dist": 2.69}, {"v": "S1", "dist": 3.66}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": null, "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.66, "S2": 2.69, "S3": 1.77, "S4": 1.27, "S5": 1.43, "S6": 2.36, "S7": 0.26, "S8": 0.43, "S9": 0.67, "S10": 0.44, "S11": 0.0, "S12": 0.58, "S13": 0.64, "S14": 0.63}}, "S12": {"order": [{"v": "S12", "dist": 0.0}, {"v": "S14", "dist": 0.39}, {"v": "S11", "dist": 0.58}, {"v": "S13", "dist": 0.75}, {"v": "S7", "dist": 0.84}, {"v": "S8", "dist": 1.01}, {"v": "S10", "dist": 1.02}, {"v": "S9", "dist": 1.25}, {"v": "S4", "dist": 1.85}, {"v": "S5", "dist": 2.01}, {"v": "S3", "dist": 2.35}, {"v": "S6", "dist": 2.94}, {"v": "S2", "dist": 3.27}, {"v": "S1", "dist": 4.24}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": "S12", "S12": null, "S13": "S12", "S14": "S12"}, "dist": {"S1": 4.24, "S2": 3.27, "S3": 2.35, "S4": 1.85, "S5": 2.01, "S6": 2.94, "S7": 0.84, "S8": 1.01, "S9": 1.25, "S10": 1.02, "S11": 0.58, "S12": 0.0, "S13": 0.75, "S14": 0.39}}, "S13": {"order": [{"v": "S13", "dist": 0.0}, {"v": "S14", "dist": 0.43}, {"v": "S11", "dist": 0.64}, {"v": "S12", "dist": 0.75}, {"v": "S7", "dist": 0.9}, {"v": "S8", "dist": 1.07}, {"v": "S10", "dist": 1.08}, {"v": "S9", "dist": 1.31}, {"v": "S4", "dist": 1.91}, {"v": "S5", "dist": 2.07}, {"v": "S3", "dist": 2.41}, {"v": "S6", "dist": 3.0}, {"v": "S2", "dist": 3.33}, {"v": "S1", "dist": 4.3}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": "S13", "S12": "S13", "S13": null, "S14": "S13"}, "dist": {"S1": 4.3, "S2": 3.33, "S3": 2.41, "S4": 1.91, "S5": 2.07, "S6": 3.0, "S7": 0.9, "S8": 1.07, "S9": 1.31, "S10": 1.08, "S11": 0.64, "S12": 0.75, "S13": 0.0, "S14": 0.43}}, "S14": {"order": [{"v": "S14", "dist": 0.0}, {"v": "S12", "dist": 0.39}, {"v": "S13", "dist": 0.43}, {"v": "S11", "dist": 0.63}, {"v": "S7", "dist": 0.89}, {"v": "S8", "dist": 1.06}, {"v": "S10", "dist": 1.07}, {"v": "S9", "dist": 1.3}, {"v": "S4", "dist": 1.9}, {"v": "S5", "dist": 2.06}, {"v": "S3", "dist": 2.4}, {"v": "S6", "dist": 2.99}, {"v": "S2", "dist": 3.32}, {"v": "S1", "dist": 4.29}], "prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": "S14", "S12": "S14", "S13": "S14", "S14": null}, "dist": {"S1": 4.29, "S2": 3.32, "S3": 2.4, "S4": 1.9, "S5": 2.06, "S6": 2.99, "S7": 0.89, "S8": 1.06, "S9": 1.3, "S10": 1.07, "S11": 0.63, "S12": 0.39, "S13": 0.43, "S14": 0.0}}}, "fw": {"ids": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"], "matrix": [[0.0, 1.0, 1.89, 2.39, 2.28, 1.3, 3.62, 3.45, 3.25, 3.48, 3.66, 4.24, 4.3, 4.29], [1.0, 0.0, 0.92, 1.42, 1.31, 0.33, 2.65, 2.48, 2.28, 2.51, 2.69, 3.27, 3.33, 3.32], [1.89, 0.92, 0.0, 0.5, 0.39, 0.59, 1.73, 1.56, 1.36, 1.59, 1.77, 2.35, 2.41, 2.4], [2.39, 1.42, 0.5, 0.0, 0.16, 1.09, 1.23, 1.06, 0.91, 1.14, 1.27, 1.85, 1.91, 1.9], [2.28, 1.31, 0.39, 0.16, 0.0, 0.98, 1.39, 1.22, 1.07, 1.3, 1.43, 2.01, 2.07, 2.06], [1.3, 0.33, 0.59, 1.09, 0.98, 0.0, 2.32, 2.15, 1.95, 2.18, 2.36, 2.94, 3.0, 2.99], [3.62, 2.65, 1.73, 1.23, 1.39, 2.32, 0.0, 0.17, 0.77, 0.54, 0.26, 0.84, 0.9, 0.89], [3.45, 2.48, 1.56, 1.06, 1.22, 2.15, 0.17, 0.0, 0.6, 0.37, 0.43, 1.01, 1.07, 1.06], [3.25, 2.28, 1.36, 0.91, 1.07, 1.95, 0.77, 0.6, 0.0, 0.23, 0.67, 1.25, 1.31, 1.3], [3.48, 2.51, 1.59, 1.14, 1.3, 2.18, 0.54, 0.37, 0.23, 0.0, 0.44, 1.02, 1.08, 1.07], [3.66, 2.69, 1.77, 1.27, 1.43, 2.36, 0.26, 0.43, 0.67, 0.44, 0.0, 0.58, 0.64, 0.63], [4.24, 3.27, 2.35, 1.85, 2.01, 2.94, 0.84, 1.01, 1.25, 1.02, 0.58, 0.0, 0.75, 0.39], [4.3, 3.33, 2.41, 1.91, 2.07, 3.0, 0.9, 1.07, 1.31, 1.08, 0.64, 0.75, 0.0, 0.43], [4.29, 3.32, 2.4, 1.9, 2.06, 2.99, 0.89, 1.06, 1.3, 1.07, 0.63, 0.39, 0.43, 0.0]], "next": {"S1": {"S1": null, "S2": "S2", "S3": "S6", "S4": "S6", "S5": "S6", "S6": "S6", "S7": "S6", "S8": "S6", "S9": "S6", "S10": "S6", "S11": "S6", "S12": "S6", "S13": "S6", "S14": "S6"}, "S2": {"S1": "S1", "S2": null, "S3": "S6", "S4": "S6", "S5": "S6", "S6": "S6", "S7": "S6", "S8": "S6", "S9": "S6", "S10": "S6", "S11": "S6", "S12": "S6", "S13": "S6", "S14": "S6"}, "S3": {"S1": "S6", "S2": "S6", "S3": null, "S4": "S4", "S5": "S5", "S6": "S6", "S7": "S4", "S8": "S4", "S9": "S9", "S10": "S9", "S11": "S4", "S12": "S4", "S13": "S4", "S14": "S4"}, "S4": {"S1": "S3", "S2": "S3", "S3": "S3", "S4": null, "S5": "S5", "S6": "S3", "S7": "S8", "S8": "S8", "S9": "S9", "S10": "S9", "S11": "S11", "S12": "S11", "S13": "S11", "S14": "S11"}, "S5": {"S1": "S3", "S2": "S3", "S3": "S3", "S4": "S4", "S5": null, "S6": "S3", "S7": "S4", "S8": "S4", "S9": "S4", "S10": "S4", "S11": "S4", "S12": "S4", "S13": "S4", "S14": "S4"}, "S6": {"S1": "S1", "S2": "S2", "S3": "S3", "S4": "S3", "S5": "S3", "S6": null, "S7": "S3", "S8": "S3", "S9": "S3", "S10": "S3", "S11": "S3", "S12": "S3", "S13": "S3", "S14": "S3"}, "S7": {"S1": "S8", "S2": "S8", "S3": "S8", "S4": "S8", "S5": "S8", "S6": "S8", "S7": null, "S8": "S8", "S9": "S8", "S10": "S8", "S11": "S11", "S12": "S11", "S13": "S11", "S14": "S11"}, "S8": {"S1": "S4", "S2": "S4", "S3": "S4", "S4": "S4", "S5": "S4", "S6": "S4", "S7": "S7", "S8": null, "S9": "S10", "S10": "S10", "S11": "S7", "S12": "S7", "S13": "S7", "S14": "S7"}, "S9": {"S1": "S3", "S2": "S3", "S3": "S3", "S4": "S4", "S5": "S4", "S6": "S3", "S7": "S10", "S8": "S10", "S9": null, "S10": "S10", "S11": "S10", "S12": "S10", "S13": "S10", "S14": "S10"}, "S10": {"S1": "S9", "S2": "S9", "S3": "S9", "S4": "S9", "S5": "S9", "S6": "S9", "S7": "S8", "S8": "S8", "S9": "S9", "S10": null, "S11": "S11", "S12": "S11", "S13": "S11", "S14": "S11"}, "S11": {"S1": "S4", "S2": "S4", "S3": "S4", "S4": "S4", "S5": "S4", "S6": "S4", "S7": "S7", "S8": "S7", "S9": "S10", "S10": "S10", "S11": null, "S12": "S12", "S13": "S13", "S14": "S14"}, "S12": {"S1": "S11", "S2": "S11", "S3": "S11", "S4": "S11", "S5": "S11", "S6": "S11", "S7": "S11", "S8": "S11", "S9": "S11", "S10": "S11", "S11": "S11", "S12": null, "S13": "S13", "S14": "S14"}, "S13": {"S1": "S11", "S2": "S11", "S3": "S11", "S4": "S11", "S5": "S11", "S6": "S11", "S7": "S11", "S8": "S11", "S9": "S11", "S10": "S11", "S11": "S11", "S12": "S12", "S13": null, "S14": "S14"}, "S14": {"S1": "S11", "S2": "S11", "S3": "S11", "S4": "S11", "S5": "S11", "S6": "S11", "S7": "S11", "S8": "S11", "S9": "S11", "S10": "S11", "S11": "S11", "S12": "S12", "S13": "S13", "S14": null}}}, "greedy": {"shifts": [{"id": "SH01", "start": 420, "end": 540, "startLabel": "07:00", "endLabel": "09:00", "driver": 1}, {"id": "SH02", "start": 450, "end": 510, "startLabel": "07:30", "endLabel": "08:30", "driver": 0}, {"id": "SH03", "start": 480, "end": 630, "startLabel": "08:00", "endLabel": "10:30", "driver": 2}, {"id": "SH04", "start": 525, "end": 600, "startLabel": "08:45", "endLabel": "10:00", "driver": 0}, {"id": "SH05", "start": 570, "end": 660, "startLabel": "09:30", "endLabel": "11:00", "driver": 1}, {"id": "SH06", "start": 600, "end": 750, "startLabel": "10:00", "endLabel": "12:30", "driver": 3}, {"id": "SH07", "start": 660, "end": 720, "startLabel": "11:00", "endLabel": "12:00", "driver": 0}, {"id": "SH08", "start": 720, "end": 840, "startLabel": "12:00", "endLabel": "14:00", "driver": 1}, {"id": "SH09", "start": 735, "end": 795, "startLabel": "12:15", "endLabel": "13:15", "driver": 0}, {"id": "SH10", "start": 780, "end": 930, "startLabel": "13:00", "endLabel": "15:30", "driver": 2}, {"id": "SH11", "start": 840, "end": 900, "startLabel": "14:00", "endLabel": "15:00", "driver": 0}, {"id": "SH12", "start": 900, "end": 1020, "startLabel": "15:00", "endLabel": "17:00", "driver": 0}, {"id": "SH13", "start": 930, "end": 1080, "startLabel": "15:30", "endLabel": "18:00", "driver": 1}, {"id": "SH14", "start": 990, "end": 1110, "startLabel": "16:30", "endLabel": "18:30", "driver": 2}, {"id": "SH15", "start": 1020, "end": 1140, "startLabel": "17:00", "endLabel": "19:00", "driver": 0}, {"id": "SH16", "start": 1110, "end": 1230, "startLabel": "18:30", "endLabel": "20:30", "driver": 1}, {"id": "SH17", "start": 1140, "end": 1260, "startLabel": "19:00", "endLabel": "21:00", "driver": 0}, {"id": "SH18", "start": 1200, "end": 1320, "startLabel": "20:00", "endLabel": "22:00", "driver": 2}], "numDrivers": 4, "dayStart": 420, "dayEnd": 1320}, "knapsack": {"vehicles": [{"id": "BUS-1", "cap": 30, "depot": "S2", "value": 125, "used": 30, "groups": [{"id": "G06", "pax": 3, "prio": 5, "val": 15}, {"id": "G11", "pax": 2, "prio": 5, "val": 10}, {"id": "G13", "pax": 14, "prio": 4, "val": 56}, {"id": "G14", "pax": 11, "prio": 4, "val": 44}]}, {"id": "BUS-2", "cap": 20, "depot": "S2", "value": 69, "used": 19, "groups": [{"id": "G01", "pax": 12, "prio": 4, "val": 48}, {"id": "G05", "pax": 7, "prio": 3, "val": 21}]}, {"id": "VAN-1", "cap": 12, "depot": "S1", "value": 36, "used": 9, "groups": [{"id": "G02", "pax": 9, "prio": 4, "val": 36}]}], "unassigned": [{"id": "G03", "pax": 6, "prio": 2}, {"id": "G04", "pax": 5, "prio": 3}, {"id": "G07", "pax": 8, "prio": 2}, {"id": "G08", "pax": 10, "prio": 1}, {"id": "G09", "pax": 6, "prio": 1}, {"id": "G10", "pax": 4, "prio": 2}, {"id": "G12", "pax": 6, "prio": 3}, {"id": "G15", "pax": 9, "prio": 3}, {"id": "G16", "pax": 5, "prio": 2}, {"id": "G17", "pax": 6, "prio": 1}, {"id": "G18", "pax": 4, "prio": 2}]}, "tours": [{"name": "File order", "order": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"], "cost": 13.37}, {"name": "Nearest neighbour", "order": ["S2", "S6", "S3", "S5", "S4", "S9", "S10", "S8", "S7", "S11", "S12", "S14", "S13", "S1"], "cost": 10.11}, {"name": "MST preorder", "order": ["S2", "S6", "S3", "S5", "S4", "S9", "S10", "S8", "S7", "S11", "S12", "S14", "S13", "S1"], "cost": 10.11}, {"name": "Optimal (Held-Karp)", "order": ["S2", "S1", "S6", "S5", "S4", "S8", "S7", "S11", "S13", "S14", "S12", "S10", "S9", "S3"], "cost": 9.92}], "slices": [["S2", "S6", "S3", "S5", "S4"], ["S9", "S10", "S8", "S7", "S11"], ["S12", "S14", "S13", "S1"]], "waitBars": [{"name": "File order", "val": 6.68}, {"name": "Nearest neighbour", "val": 5.05}, {"name": "MST preorder", "val": 5.05}, {"name": "Optimal (Held-Karp)", "val": 4.96}, {"name": "After (3 shuttles)", "val": 2.03}], "sensitivity": {"k": [1, 2, 3, 4, 5, 6], "wait": [5.05, 3.91, 2.03, 1.75, 1.26, 1.12], "gain": [null, 1.14, 1.88, 0.28, 0.49, 0.14], "knee": 4, "threshold": 0.5}, "complexity": [{"name": "Adjacency list build", "big_o": "O(V + E)", "use": "load stops & roads"}, {"name": "Prim (binary heap)", "big_o": "O(E log V)", "use": "MST"}, {"name": "Kruskal (union-find)", "big_o": "O(E log E)", "use": "MST"}, {"name": "Dijkstra (binary heap)", "big_o": "O((V + E) log V)", "use": "shortest path"}, {"name": "Bellman-Ford", "big_o": "O(V · E)", "use": "shortest path, cross-check"}, {"name": "Floyd-Warshall", "big_o": "O(V³)", "use": "all-pairs shortest paths"}, {"name": "Greedy activity selection", "big_o": "O(S log S)", "use": "driver shifts"}, {"name": "0-1 Knapsack (DP)", "big_o": "O(n · W)", "use": "passenger assignment"}, {"name": "Nearest-neighbour tour", "big_o": "O(n²)", "use": "heuristic TSP"}, {"name": "Held-Karp exact TSP", "big_o": "O(n² · 2ⁿ)", "use": "optimal tour"}], "assumptions": ["Passengers arrive uniformly, so average wait = loop time / 2", "Stops weighted by passengers in demand.csv (all estimated)", "Before: 1 shuttle visits stops in stops.csv order (S1..S14) and repeats", "Nearest neighbour / MST preorder / Optimal: 1 shuttle on that closed tour", "Optimal = Held-Karp exact TSP over shortest-path distances", "After: 3 fleet shuttles run concurrently, each looping one contiguous slice of the MST tour", "Shift schedule: greedy driver assignment staffs the fleet; wait uses steady-state headways"], "dataNote": "Stop names and GPS coordinates are REAL. Road links, travel times (haversine at an assumed 20 km/h), passenger demand, fleet and driver shifts are ESTIMATES for the model."};
+const DATA = {"meta": {"title": "Campus Shuttle Routing & Capacity Scheduling", "subtitle": "Design & Analysis of Algorithms · Woxsen University", "teams": "D. Ritheek · M. Srilakshmi · B. Deekshan · P. Priyakaran · G. Madhan"}, "kpi": {"stops": 14, "roads": 22, "mstCost": 5.81, "drivers": 4, "shifts": 18, "tests": 204, "before": 6.69, "mstOne": 5.06, "after": 2.03, "improvement": 70, "fileLoop": 13.37, "mstLoop": 10.11, "optLoop": 9.92, "shuttles": 3}, "stops": [{"id": "S1", "name": "Main Gate", "x": 0.6136, "y": 0.0}, {"id": "S2", "name": "Bus Stop", "x": 0.5283, "y": 0.3209}, {"id": "S3", "name": "Academic Blocks", "x": 0.7201, "y": 0.321}, {"id": "S4", "name": "Library", "x": 0.5707, "y": 0.3943}, {"id": "S5", "name": "Rise Cafe", "x": 0.5937, "y": 0.3454}, {"id": "S6", "name": "Care and Cure", "x": 0.5551, "y": 0.4275}, {"id": "S7", "name": "Boys Hostel", "x": 0.5073, "y": 0.7453}, {"id": "S8", "name": "Girls Hostel", "x": 0.4535, "y": 0.7243}, {"id": "S9", "name": "i Create", "x": 0.4015, "y": 0.6426}, {"id": "S10", "name": "Blu Embers", "x": 0.3375, "y": 0.6825}, {"id": "S11", "name": "Oval", "x": 0.4326, "y": 0.7913}, {"id": "S12", "name": "Race Arena", "x": 0.5297, "y": 0.9562}, {"id": "S13", "name": "Cricket Ground", "x": 0.2799, "y": 0.9382}, {"id": "S14", "name": "SportX", "x": 0.4075, "y": 1.0}], "edges": [{"u": "S1", "v": "S2", "w": 1.0}, {"u": "S1", "v": "S6", "w": 1.3}, {"u": "S2", "v": "S6", "w": 0.33}, {"u": "S3", "v": "S4", "w": 0.5}, {"u": "S3", "v": "S5", "w": 0.39}, {"u": "S3", "v": "S6", "w": 0.59}, {"u": "S3", "v": "S9", "w": 1.36}, {"u": "S4", "v": "S5", "w": 0.16}, {"u": "S4", "v": "S8", "w": 1.06}, {"u": "S4", "v": "S9", "w": 0.91}, {"u": "S7", "v": "S8", "w": 0.17}, {"u": "S10", "v": "S8", "w": 0.37}, {"u": "S10", "v": "S9", "w": 0.23}, {"u": "S10", "v": "S11", "w": 0.44}, {"u": "S11", "v": "S4", "w": 1.27}, {"u": "S11", "v": "S7", "w": 0.26}, {"u": "S11", "v": "S12", "w": 0.58}, {"u": "S11", "v": "S13", "w": 0.64}, {"u": "S11", "v": "S14", "w": 0.63}, {"u": "S12", "v": "S13", "w": 0.75}, {"u": "S12", "v": "S14", "w": 0.39}, {"u": "S13", "v": "S14", "w": 0.43}], "defaults": {"src": "S2", "dst": "S12", "altSrc": "S1", "altDst": "S13"}, "dijkstra": {"S1": {"prev": {"S1": null, "S2": "S1", "S3": "S6", "S4": "S3", "S5": "S3", "S6": "S1", "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 0.0, "S2": 1.0, "S3": 1.89, "S4": 2.39, "S5": 2.28, "S6": 1.3, "S7": 3.62, "S8": 3.45, "S9": 3.25, "S10": 3.48, "S11": 3.66, "S12": 4.24, "S13": 4.3, "S14": 4.29}}, "S2": {"prev": {"S1": "S2", "S2": null, "S3": "S6", "S4": "S3", "S5": "S3", "S6": "S2", "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 1.0, "S2": 0.0, "S3": 0.92, "S4": 1.42, "S5": 1.31, "S6": 0.33, "S7": 2.65, "S8": 2.48, "S9": 2.28, "S10": 2.51, "S11": 2.69, "S12": 3.27, "S13": 3.33, "S14": 3.32}}, "S3": {"prev": {"S1": "S6", "S2": "S6", "S3": null, "S4": "S3", "S5": "S3", "S6": "S3", "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 1.89, "S2": 0.92, "S3": 0.0, "S4": 0.5, "S5": 0.39, "S6": 0.59, "S7": 1.73, "S8": 1.56, "S9": 1.36, "S10": 1.59, "S11": 1.77, "S12": 2.35, "S13": 2.41, "S14": 2.4}}, "S4": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": null, "S5": "S4", "S6": "S3", "S7": "S8", "S8": "S4", "S9": "S4", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 2.39, "S2": 1.42, "S3": 0.5, "S4": 0.0, "S5": 0.16, "S6": 1.09, "S7": 1.23, "S8": 1.06, "S9": 0.91, "S10": 1.14, "S11": 1.27, "S12": 1.85, "S13": 1.91, "S14": 1.9}}, "S5": {"prev": {"S1": "S6", "S2": "S6", "S3": "S5", "S4": "S5", "S5": null, "S6": "S3", "S7": "S8", "S8": "S4", "S9": "S4", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 2.28, "S2": 1.31, "S3": 0.39, "S4": 0.16, "S5": 0.0, "S6": 0.98, "S7": 1.39, "S8": 1.22, "S9": 1.07, "S10": 1.3, "S11": 1.43, "S12": 2.01, "S13": 2.07, "S14": 2.06}}, "S6": {"prev": {"S1": "S6", "S2": "S6", "S3": "S6", "S4": "S3", "S5": "S3", "S6": null, "S7": "S8", "S8": "S4", "S9": "S3", "S10": "S9", "S11": "S4", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 1.3, "S2": 0.33, "S3": 0.59, "S4": 1.09, "S5": 0.98, "S6": 0.0, "S7": 2.32, "S8": 2.15, "S9": 1.95, "S10": 2.18, "S11": 2.36, "S12": 2.94, "S13": 3.0, "S14": 2.99}}, "S7": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S8", "S5": "S4", "S6": "S3", "S7": null, "S8": "S7", "S9": "S10", "S10": "S8", "S11": "S7", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.62, "S2": 2.65, "S3": 1.73, "S4": 1.23, "S5": 1.39, "S6": 2.32, "S7": 0.0, "S8": 0.17, "S9": 0.77, "S10": 0.54, "S11": 0.26, "S12": 0.84, "S13": 0.9, "S14": 0.89}}, "S8": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S8", "S5": "S4", "S6": "S3", "S7": "S8", "S8": null, "S9": "S10", "S10": "S8", "S11": "S7", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.45, "S2": 2.48, "S3": 1.56, "S4": 1.06, "S5": 1.22, "S6": 2.15, "S7": 0.17, "S8": 0.0, "S9": 0.6, "S10": 0.37, "S11": 0.43, "S12": 1.01, "S13": 1.07, "S14": 1.06}}, "S9": {"prev": {"S1": "S6", "S2": "S6", "S3": "S9", "S4": "S9", "S5": "S4", "S6": "S3", "S7": "S8", "S8": "S10", "S9": null, "S10": "S9", "S11": "S10", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.25, "S2": 2.28, "S3": 1.36, "S4": 0.91, "S5": 1.07, "S6": 1.95, "S7": 0.77, "S8": 0.6, "S9": 0.0, "S10": 0.23, "S11": 0.67, "S12": 1.25, "S13": 1.31, "S14": 1.3}}, "S10": {"prev": {"S1": "S6", "S2": "S6", "S3": "S9", "S4": "S9", "S5": "S4", "S6": "S3", "S7": "S8", "S8": "S10", "S9": "S10", "S10": null, "S11": "S10", "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.48, "S2": 2.51, "S3": 1.59, "S4": 1.14, "S5": 1.3, "S6": 2.18, "S7": 0.54, "S8": 0.37, "S9": 0.23, "S10": 0.0, "S11": 0.44, "S12": 1.02, "S13": 1.08, "S14": 1.07}}, "S11": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": null, "S12": "S11", "S13": "S11", "S14": "S11"}, "dist": {"S1": 3.66, "S2": 2.69, "S3": 1.77, "S4": 1.27, "S5": 1.43, "S6": 2.36, "S7": 0.26, "S8": 0.43, "S9": 0.67, "S10": 0.44, "S11": 0.0, "S12": 0.58, "S13": 0.64, "S14": 0.63}}, "S12": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": "S12", "S12": null, "S13": "S12", "S14": "S12"}, "dist": {"S1": 4.24, "S2": 3.27, "S3": 2.35, "S4": 1.85, "S5": 2.01, "S6": 2.94, "S7": 0.84, "S8": 1.01, "S9": 1.25, "S10": 1.02, "S11": 0.58, "S12": 0.0, "S13": 0.75, "S14": 0.39}}, "S13": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": "S13", "S12": "S13", "S13": null, "S14": "S13"}, "dist": {"S1": 4.3, "S2": 3.33, "S3": 2.41, "S4": 1.91, "S5": 2.07, "S6": 3.0, "S7": 0.9, "S8": 1.07, "S9": 1.31, "S10": 1.08, "S11": 0.64, "S12": 0.75, "S13": 0.0, "S14": 0.43}}, "S14": {"prev": {"S1": "S6", "S2": "S6", "S3": "S4", "S4": "S11", "S5": "S4", "S6": "S3", "S7": "S11", "S8": "S7", "S9": "S10", "S10": "S11", "S11": "S14", "S12": "S14", "S13": "S14", "S14": null}, "dist": {"S1": 4.29, "S2": 3.32, "S3": 2.4, "S4": 1.9, "S5": 2.06, "S6": 2.99, "S7": 0.89, "S8": 1.06, "S9": 1.3, "S10": 1.07, "S11": 0.63, "S12": 0.39, "S13": 0.43, "S14": 0.0}}}, "fwNext": {"S1": {"S1": null, "S2": "S2", "S3": "S6", "S4": "S6", "S5": "S6", "S6": "S6", "S7": "S6", "S8": "S6", "S9": "S6", "S10": "S6", "S11": "S6", "S12": "S6", "S13": "S6", "S14": "S6"}, "S2": {"S1": "S1", "S2": null, "S3": "S6", "S4": "S6", "S5": "S6", "S6": "S6", "S7": "S6", "S8": "S6", "S9": "S6", "S10": "S6", "S11": "S6", "S12": "S6", "S13": "S6", "S14": "S6"}, "S3": {"S1": "S6", "S2": "S6", "S3": null, "S4": "S4", "S5": "S5", "S6": "S6", "S7": "S4", "S8": "S4", "S9": "S9", "S10": "S9", "S11": "S4", "S12": "S4", "S13": "S4", "S14": "S4"}, "S4": {"S1": "S3", "S2": "S3", "S3": "S3", "S4": null, "S5": "S5", "S6": "S3", "S7": "S8", "S8": "S8", "S9": "S9", "S10": "S9", "S11": "S11", "S12": "S11", "S13": "S11", "S14": "S11"}, "S5": {"S1": "S3", "S2": "S3", "S3": "S3", "S4": "S4", "S5": null, "S6": "S3", "S7": "S4", "S8": "S4", "S9": "S4", "S10": "S4", "S11": "S4", "S12": "S4", "S13": "S4", "S14": "S4"}, "S6": {"S1": "S1", "S2": "S2", "S3": "S3", "S4": "S3", "S5": "S3", "S6": null, "S7": "S3", "S8": "S3", "S9": "S3", "S10": "S3", "S11": "S3", "S12": "S3", "S13": "S3", "S14": "S3"}, "S7": {"S1": "S8", "S2": "S8", "S3": "S8", "S4": "S8", "S5": "S8", "S6": "S8", "S7": null, "S8": "S8", "S9": "S8", "S10": "S8", "S11": "S11", "S12": "S11", "S13": "S11", "S14": "S11"}, "S8": {"S1": "S4", "S2": "S4", "S3": "S4", "S4": "S4", "S5": "S4", "S6": "S4", "S7": "S7", "S8": null, "S9": "S10", "S10": "S10", "S11": "S7", "S12": "S7", "S13": "S7", "S14": "S7"}, "S9": {"S1": "S3", "S2": "S3", "S3": "S3", "S4": "S4", "S5": "S4", "S6": "S3", "S7": "S10", "S8": "S10", "S9": null, "S10": "S10", "S11": "S10", "S12": "S10", "S13": "S10", "S14": "S10"}, "S10": {"S1": "S9", "S2": "S9", "S3": "S9", "S4": "S9", "S5": "S9", "S6": "S9", "S7": "S8", "S8": "S8", "S9": "S9", "S10": null, "S11": "S11", "S12": "S11", "S13": "S11", "S14": "S11"}, "S11": {"S1": "S4", "S2": "S4", "S3": "S4", "S4": "S4", "S5": "S4", "S6": "S4", "S7": "S7", "S8": "S7", "S9": "S10", "S10": "S10", "S11": null, "S12": "S12", "S13": "S13", "S14": "S14"}, "S12": {"S1": "S11", "S2": "S11", "S3": "S11", "S4": "S11", "S5": "S11", "S6": "S11", "S7": "S11", "S8": "S11", "S9": "S11", "S10": "S11", "S11": "S11", "S12": null, "S13": "S13", "S14": "S14"}, "S13": {"S1": "S11", "S2": "S11", "S3": "S11", "S4": "S11", "S5": "S11", "S6": "S11", "S7": "S11", "S8": "S11", "S9": "S11", "S10": "S11", "S11": "S11", "S12": "S12", "S13": null, "S14": "S14"}, "S14": {"S1": "S11", "S2": "S11", "S3": "S11", "S4": "S11", "S5": "S11", "S6": "S11", "S7": "S11", "S8": "S11", "S9": "S11", "S10": "S11", "S11": "S11", "S12": "S12", "S13": "S13", "S14": null}}, "fileOrder": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"], "slices": [["S2", "S6", "S3", "S5", "S4"], ["S9", "S10", "S8", "S7", "S11"], ["S12", "S14", "S13", "S1"]], "sensitivity": {"k": [1, 2, 3, 4, 5, 6], "wait": [5.06, 3.91, 2.03, 1.75, 1.26, 1.12], "knee": 4, "threshold": 0.5}, "steps": [{"icon": "graph", "title": "Model the campus as a graph", "algos": "Graph · adjacency list", "simple": "Stops become dots, roads become lines with a travel time.", "result": "14 stops · 22 roads"}, {"icon": "route", "title": "Find roads and routes", "algos": "Prim · Kruskal · Dijkstra · Bellman-Ford · Floyd-Warshall", "simple": "Find the cheapest road network and the fastest route between stops.", "result": "5.81 min road network", "result2": "Bus Stop to Race Arena: 3.3 min"}, {"icon": "calendar", "title": "Schedule drivers and vehicles", "algos": "Greedy scheduling · 0-1 knapsack", "simple": "Give every shift a driver, and fit passenger groups into vehicle seats.", "result": "4 drivers", "result2": "cover all 18 shifts"}, {"icon": "loop", "title": "Plan the best loop", "algos": "MST tour · Held-Karp (exact)", "simple": "Pick the stop order that makes one trip around campus shortest.", "result": "9.92 min loop", "result2": "best possible; our MST loop is 10.11 (1.019x)"}], "algos": [{"name": "Prim (binary heap)", "bigO": "O(E log V)", "result": "Cheapest road network 5.81 min", "simple": "Grow one network from a stop, always adding the cheapest road that reaches a new stop."}, {"name": "Kruskal (union-find)", "bigO": "O(E log E)", "result": "Same network, 5.81 min", "simple": "Sort roads by time and keep each one that does not close a loop."}, {"name": "Dijkstra (binary heap)", "bigO": "O((V+E) log V)", "result": "Bus Stop to Race Arena: 3.3 min", "simple": "Spread outwards from the start, always finalising the closest stop first."}, {"name": "Bellman-Ford", "bigO": "O(V·E)", "result": "Agrees with Dijkstra on every route", "simple": "Repeatedly relax every road; a slower second opinion."}, {"name": "Floyd-Warshall", "bigO": "O(V³)", "result": "Longest shortest trip 4.3 min (Main Gate to Cricket Ground)", "simple": "Try every stop as a stepping stone to get all pairs at once."}, {"name": "Greedy activity selection", "bigO": "O(S log S)", "result": "1 driver covers 8 of 18 shifts; 4 cover all", "simple": "Always take the shift that ends earliest, then repeat for the next driver."}, {"name": "0-1 knapsack (DP)", "bigO": "O(n·W)", "result": "Seats used: BUS-1 30/30, BUS-2 19/20, VAN-1 9/12", "simple": "For each vehicle, pick the passenger groups worth the most that still fit."}, {"name": "Nearest neighbour", "bigO": "O(n²)", "result": "Loop 10.11 min", "simple": "From each stop, always go to the closest unvisited stop."}, {"name": "MST preorder tour", "bigO": "O(V log V)", "result": "Loop 10.11 min (1.019x best)", "simple": "Walk around the cheapest network; provably at most 2x the best loop."}, {"name": "Held-Karp (exact TSP)", "bigO": "O(n²·2ⁿ)", "result": "Best loop 9.92 min", "simple": "Try all subsets of stops with memory, so the best loop is guaranteed."}, {"name": "Wait model", "bigO": "O(V)", "result": "6.69 to 2.03 min (70% less)", "simple": "Average wait is half the loop time, weighted by how many people start at each stop."}], "checks": {"mst": true, "paths": true, "tour": true}, "dataNote": "Stop names and GPS coordinates are real. Roads, travel times (20 km/h assumed), passenger demand, fleet and driver shifts are estimates."};
 window.addEventListener('error', e => { document.title = 'ERR: ' + e.message; });
+window.addEventListener('unhandledrejection', e => { document.title = 'ERR: ' + (e.reason && e.reason.message || e.reason); });
 
-/* ============================ helpers ============================ */
-const $ = (s,r=document)=>r.querySelector(s);
-const SVGNS="http://www.w3.org/2000/svg";
-function E(tag,attrs={},kids=[]){const n=document.createElement(tag);
-  for(const k in attrs){ if(k==='text')n.textContent=attrs[k]; else if(k==='html')n.innerHTML=attrs[k]; else n.setAttribute(k,attrs[k]); }
-  (Array.isArray(kids)?kids:[kids]).forEach(c=>c&&n.appendChild(typeof c==='string'?document.createTextNode(c):c)); return n; }
-function S(tag,attrs={}){const n=document.createElementNS(SVGNS,tag); for(const k in attrs)n.setAttribute(k,attrs[k]); return n; }
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const lerp=(a,b,t)=>a+(b-a)*t;
-const easeOut=t=>1-Math.pow(1-t,3);
-const fmt=(x,d=2)=>Number(x).toFixed(d);
-const byId={}; DATA.stops.forEach(s=>byId[s.id]=s);
-const nameOf=id=>byId[id]?byId[id].name:id;
-
-/* tooltip */
-const tip=$('#tip');
-function showTip(html,x,y){ tip.innerHTML=html; tip.classList.add('show');
-  const w=tip.offsetWidth,h=tip.offsetHeight;
-  tip.style.left=clamp(x+14,8,innerWidth-w-8)+'px'; tip.style.top=clamp(y-h-12,8,innerHeight-h-8)+'px'; }
-function hideTip(){ tip.classList.remove('show'); }
-
-/* map geometry (viewBox 1000x680) */
-const MW=1000,MH=680,PAD=72;
-const px=s=>PAD+s.x*(MW-2*PAD), py=s=>PAD+s.y*(MH-2*PAD);
-function edgeKey(a,b){return a<b?a+'|'+b:b+'|'+a;}
-
-/* ============================ hero + KPIs ============================ */
-function initHero(){
-  $('#heroTitle').textContent=DATA.meta.title;
-  $('#heroSub').textContent=DATA.meta.subtitle;
-  $('#heroTeam').textContent='Team · '+DATA.meta.teams;
-  const k=DATA.kpi;
-  $('#flowFrom').textContent=fmt(k.before); $('#flowTo').textContent=fmt(k.after);
-  $('#fasterBadge').textContent='● '+k.improvement+'% faster';
-  $('#footer').innerHTML=DATA.meta.title+' · generated offline from the real algorithm run · '+
-    DATA.kpi.tests+' tests passing. Single self-contained HTML — no network, no CDN.';
-  // spark line 6.69 -> 2.03
-  const sp=$('#spark'), pts=DATA.sensitivity.wait;
-  const mx=Math.max(...pts), mn=Math.min(...pts);
-  const d=pts.map((w,i)=>`${i/(pts.length-1)*300},${38-(w-mn)/(mx-mn||1)*34+2}`).join(' ');
-  sp.appendChild(S('polyline',{points:d,fill:'none',stroke:'var(--teal)','stroke-width':'2.5','stroke-linecap':'round','stroke-linejoin':'round'}));
+/* ================= helpers ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+function E(tag, attrs = {}, kids = []) {
+  const n = document.createElement(tag);
+  for (const k in attrs) { if (k === 'text') n.textContent = attrs[k]; else if (k === 'html') n.innerHTML = attrs[k]; else n.setAttribute(k, attrs[k]); }
+  (Array.isArray(kids) ? kids : [kids]).forEach(c => c && n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+  return n;
 }
-function animateCounter(el,from,to,dur,dec=2){
-  const fin=()=>el.textContent=dec>0?fmt(to,dec):String(to);
-  const t0=performance.now();
-  (function f(now){ const t=clamp((now-t0)/dur,0,1); const v=lerp(from,to,easeOut(t));
-    el.textContent=dec>0?fmt(v,dec):String(Math.round(v));
-    if(t<1)requestAnimationFrame(f); else fin(); })(t0);
-  setTimeout(fin,dur+400); // guarantee the exact final value even if rAF is throttled
+function S(tag, attrs = {}) { const n = document.createElementNS(SVGNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => 1 - Math.pow(1 - t, 3);
+const fmt = (x, d = 2) => Number(x).toFixed(d);
+const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const K = DATA.kpi, byId = {};
+DATA.stops.forEach(s => byId[s.id] = s);
+const nameOf = id => byId[id].name;
+
+/* count a number from -> to; always lands exactly on `to` (setTimeout backs up rAF) */
+function countTo(el, from, to, ms, dec, onTick) {
+  const done = () => { el.textContent = dec ? fmt(to, dec) : String(to); if (onTick) onTick(1); };
+  if (RM) return done();
+  const t0 = performance.now();
+  (function f(now) {
+    const t = clamp((now - t0) / ms, 0, 1), v = lerp(from, to, ease(t));
+    el.textContent = dec ? fmt(v, dec) : String(Math.round(v)); if (onTick) onTick(t);
+    if (t < 1) requestAnimationFrame(f);
+  })(t0);
+  setTimeout(done, ms + 300);
 }
-function initKPIs(){
-  const k=DATA.kpi;
-  const cards=[
-    {n:k.stops,dec:0,k:'Campus stops',s:'real GPS coordinates'},
-    {n:k.roads,dec:0,k:'Road links',s:'estimated network'},
-    {n:k.mstCost,dec:2,k:'MST cost (min)',s:'Prim = Kruskal'},
-    {n:k.drivers,dec:0,k:'Drivers',s:'cover '+k.shifts+' shifts'},
-    {n:k.tests,dec:0,k:'Tests passing',s:'pytest -q'},
-  ];
-  const wrap=$('#kpis');
-  cards.forEach(c=>{
-    const nEl=E('div',{class:'n',text:c.dec?'0.00':'0'});
-    wrap.appendChild(E('div',{class:'kpi reveal'},[nEl,E('div',{class:'k',text:c.k}),E('div',{class:'s',text:c.s})]));
-    c._el=nEl;
+
+/* ================= map geometry + collision-free labels ================= */
+const NARROW = window.innerWidth < 640;          // phones get a tighter map and bigger labels
+const FS = NARROW ? 27 : 22;                       // label font size in map units (rendered ~14-16px)
+const VB = NARROW ? { w: 640, h: 800 } : { w: 760, h: 780 };
+const SIDE = NARROW ? 110 : 190;                   // minimum space kept on each side for labels
+const P = {};                                      // stop id -> {x, y} in map units
+(function placeStops() {
+  const xs = DATA.stops.map(s => s.x), ys = DATA.stops.map(s => s.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const bw = (x1 - x0) || 1, bh = (y1 - y0) || 1;
+  const k = Math.min((VB.w - 2 * SIDE) / bw, (VB.h - 100) / bh);
+  const ox = (VB.w - bw * k) / 2, oy = (VB.h - bh * k) / 2;
+  DATA.stops.forEach(s => P[s.id] = { x: ox + (s.x - x0) * k, y: oy + (s.y - y0) * k });
+})();
+
+/* Try 8 directions at growing distances for every label; pick the spot that overlaps
+   no label or node and crosses the fewest roads. Result is shared by all maps. */
+const LABELS = (function computeLabels() {
+  const h = FS + 6, R = 11, ids = DATA.stops.map(s => s.id);
+  const width = id => nameOf(id).length * FS * 0.56 + 8;
+  const nodeBox = id => ({ x1: P[id].x - R - 2, y1: P[id].y - R - 2, x2: P[id].x + R + 2, y2: P[id].y + R + 2 });
+  const hit = (a, b) => !(a.x2 <= b.x1 || a.x1 >= b.x2 || a.y2 <= b.y1 || a.y1 >= b.y2);
+  const edgePts = [];
+  DATA.edges.forEach(e => { const a = P[e.u], b = P[e.v], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 5);
+    for (let i = 0; i <= n; i++) edgePts.push([a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n]); });
+  const crowd = id => ids.filter(o => o !== id && Math.hypot(P[o].x - P[id].x, P[o].y - P[id].y) < 120).length;
+  const DIRS = ['r', 'l', 't', 'b', 'ur', 'ul', 'dr', 'dl'];
+  function cand(id, dir, d) {
+    const { x, y } = P[id], w = width(id); let r, anchor, tx;
+    switch (dir) {
+      case 'r':  r = { x1: x + d, y1: y - h / 2, x2: x + d + w, y2: y + h / 2 }; anchor = 'start'; tx = r.x1 + 3; break;
+      case 'l':  r = { x1: x - d - w, y1: y - h / 2, x2: x - d, y2: y + h / 2 }; anchor = 'end'; tx = r.x2 - 3; break;
+      case 't':  r = { x1: x - w / 2, y1: y - d - h, x2: x + w / 2, y2: y - d }; anchor = 'middle'; tx = x; break;
+      case 'b':  r = { x1: x - w / 2, y1: y + d, x2: x + w / 2, y2: y + d + h }; anchor = 'middle'; tx = x; break;
+      case 'ur': r = { x1: x + d * .7, y1: y - d * .9 - h, x2: x + d * .7 + w, y2: y - d * .9 }; anchor = 'start'; tx = r.x1 + 3; break;
+      case 'ul': r = { x1: x - d * .7 - w, y1: y - d * .9 - h, x2: x - d * .7, y2: y - d * .9 }; anchor = 'end'; tx = r.x2 - 3; break;
+      case 'dr': r = { x1: x + d * .7, y1: y + d * .9, x2: x + d * .7 + w, y2: y + d * .9 + h }; anchor = 'start'; tx = r.x1 + 3; break;
+      default:   r = { x1: x - d * .7 - w, y1: y + d * .9, x2: x - d * .7, y2: y + d * .9 + h }; anchor = 'end'; tx = r.x2 - 3;
+    }
+    return { r, anchor, tx, ty: (r.y1 + r.y2) / 2 + FS * 0.35, d };
+  }
+  const placed = [], out = {};
+  ids.slice().sort((a, b) => crowd(b) - crowd(a)).forEach(id => {
+    let best = null;
+    [14, 26, 40, 56, 76, 100].forEach((d, di) => DIRS.forEach((dir, ii) => {
+      const c = cand(id, dir, d), r = c.r;
+      if (r.x1 < 4 || r.y1 < 4 || r.x2 > VB.w - 4 || r.y2 > VB.h - 4) return;
+      if (placed.some(p => hit(r, p))) return;
+      if (ids.some(o => o !== id && hit(r, nodeBox(o)))) return;
+      if (hit(r, nodeBox(id))) return;
+      const cross = edgePts.filter(p => p[0] > r.x1 && p[0] < r.x2 && p[1] > r.y1 && p[1] < r.y2).length;
+      c.score = cross * 0.35 + di * 3 + ii * 0.4;
+      if (!best || c.score < best.score) best = c;
+    }));
+    if (!best) best = cand(id, 'r', 120);     // last resort (never hit with current data)
+    placed.push(best.r); out[id] = best;
   });
-  let started=false;
-  const run=()=>{ if(started)return; started=true;
-    cards.forEach((c,i)=>setTimeout(()=>animateCounter(c._el,0,c.n,900,c.dec),i*90)); };
-  const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ run(); io.disconnect(); } }),{threshold:.4});
-  io.observe(wrap);
-  setTimeout(run,1600); // fallback if the observer never fires (e.g. headless)
-}
+  // self-check used by tests: count label/label and label/node overlaps
+  let bad = 0; const L = ids.map(i => out[i].r);
+  for (let i = 0; i < L.length; i++) {
+    for (let j = i + 1; j < L.length; j++) if (hit(L[i], L[j])) bad++;
+    ids.forEach(o => { if (o !== ids[i] && hit(L[i], nodeBox(o))) bad++; });
+  }
+  window.__labelOverlaps = bad;
+  return out;
+})();
 
-/* reveal on scroll */
-function initReveal(){
-  const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('in'); io.unobserve(e.target);} }),{threshold:.12});
-  document.querySelectorAll('.reveal').forEach(n=>io.observe(n));
-  // fallback: never leave content hidden if the observer is delayed/unsupported
-  setTimeout(()=>document.querySelectorAll('.reveal:not(.in)').forEach(n=>n.classList.add('in')),1600);
+/* ---- polylines along real roads ---- */
+function roadPath(order, closed) {                 // expand a stop order into road hops via Floyd-Warshall next-hops
+  let out = [];
+  const n = closed ? order.length : order.length - 1;
+  for (let i = 0; i < n; i++) {
+    let u = order[i]; const v = order[(i + 1) % order.length], seg = [u]; let g = 40;
+    while (u !== v && g--) { u = DATA.fwNext[u][v]; seg.push(u); }
+    out = out.concat(i ? seg.slice(1) : seg);
+  }
+  return out;
 }
+function poly(ids) {
+  const pts = ids.map(i => [P[i].x, P[i].y]), seg = []; let len = 0;
+  for (let i = 0; i < pts.length - 1; i++) { const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); seg.push({ a: pts[i], b: pts[i + 1], d, acc: len }); len += d; }
+  return { pts, seg, len: len || 1 };
+}
+function pointAt(pl, dist) {
+  dist = ((dist % pl.len) + pl.len) % pl.len;
+  for (const s of pl.seg) if (dist <= s.acc + s.d) { const t = s.d ? (dist - s.acc) / s.d : 0; return [lerp(s.a[0], s.b[0], t), lerp(s.a[1], s.b[1], t)]; }
+  return pl.pts[0];
+}
+const ptsAttr = pl => pl.pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
 
-/* ============================ shared map ============================ */
-function buildMap(container,{weights=false}={}){
-  const svg=S('svg',{viewBox:`0 0 ${MW} ${MH}`});
-  const gEdge=S('g'),gLabel=S('g'),gOverlay=S('g'),gNode=S('g');
-  svg.append(gEdge,gOverlay,gLabel,gNode);
-  const edgeEl={};
-  DATA.edges.forEach(e=>{
-    const a=byId[e.u],b=byId[e.v];
-    const ln=S('line',{x1:px(a),y1:py(a),x2:px(b),y2:py(b),class:'edge'});
-    edgeEl[edgeKey(e.u,e.v)]=ln; gEdge.appendChild(ln);
-    if(weights){ const t=S('text',{x:(px(a)+px(b))/2,y:(py(a)+py(b))/2-3,class:'ewt','text-anchor':'middle',text:fmt(e.w,1)});
-      t.textContent=fmt(e.w,1); gLabel.appendChild(t); }
+/* ---- map factory ---- */
+function makeMap(host, label) {
+  const svg = S('svg', { viewBox: `0 0 ${VB.w} ${VB.h}`, role: 'img', 'aria-label': label });
+  const gRoad = S('g'), gRoute = S('g'), gLead = S('g'), gNode = S('g'), gLbl = S('g'), gDot = S('g');
+  svg.append(gRoad, gRoute, gLead, gNode, gLbl, gDot);
+  DATA.edges.forEach(e => {
+    const l = S('line', { x1: P[e.u].x, y1: P[e.u].y, x2: P[e.v].x, y2: P[e.v].y, class: 'road' });
+    const t = S('title'); t.textContent = nameOf(e.u) + ' – ' + nameOf(e.v) + ': ' + fmt(e.w, 1) + ' min'; l.appendChild(t); gRoad.appendChild(l);
   });
-  const nodeEl={};
-  DATA.stops.forEach(s=>{
-    const c=S('circle',{cx:px(s),cy:py(s),r:9,class:'node'});
-    c.addEventListener('mousemove',ev=>showTip(`<b>${s.name}</b><br>${s.id} · ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}`,ev.clientX,ev.clientY));
-    c.addEventListener('mouseleave',hideTip);
-    nodeEl[s.id]=c; gNode.appendChild(c);
-    const side=s.x>0.82?'end':'start', dx=s.x>0.82?-13:13;
-    const t=S('text',{x:px(s)+dx,y:py(s)+4,class:'nlabel','text-anchor':side}); t.textContent=s.name; gLabel.appendChild(t);
+  const nodes = {};
+  DATA.stops.forEach(s => {
+    const c = LABELS[s.id];
+    if (c.d >= 26) { const nx = clamp(P[s.id].x, c.r.x1, c.r.x2), ny = clamp(P[s.id].y, c.r.y1, c.r.y2);
+      gLead.appendChild(S('line', { x1: P[s.id].x, y1: P[s.id].y, x2: nx, y2: ny, stroke: '#9aa7a4', 'stroke-width': 1.5 })); }
+    const n = S('circle', { cx: P[s.id].x, cy: P[s.id].y, r: 10, class: 'node' }); nodes[s.id] = n; gNode.appendChild(n);
+    const t = S('text', { x: c.tx, y: c.ty, 'text-anchor': c.anchor, class: 'lbl', 'font-size': FS }); t.textContent = s.name; gLbl.appendChild(t);
   });
-  container.appendChild(svg);
-  return {svg,gOverlay,edgeEl,nodeEl,
-    reset(){ Object.values(edgeEl).forEach(e=>e.setAttribute('class','edge'));
-      Object.values(nodeEl).forEach(n=>n.setAttribute('class','node'));
-      gOverlay.innerHTML=''; } };
+  host.appendChild(svg);
+  return { svg, gRoute, gDot, nodes };
 }
 
-/* ============================ side-panel helpers ============================ */
-const side=$('#side');
-function setSide(cards){ side.innerHTML=''; cards.forEach(c=>side.appendChild(c)); }
-function statCard(title,rows){
-  const c=E('div',{class:'card'},[E('h4',{text:title})]);
-  rows.forEach(r=>c.appendChild(E('div',{class:'stat-row'},[E('span',{text:r[0]}),E('b',{text:r[1]})])));
-  return c;
+/* ---- moving shuttle dots: one loop, only runs for sections on screen ---- */
+const active = {}, dots = [];
+function addDot(sec, pl, color, speed, host) {
+  const el = S('circle', { r: 11, fill: color, stroke: '#fff', 'stroke-width': 3.5 }); host.appendChild(el);
+  const o = { sec, pl, el, speed, pos: 0 }; place(o); dots.push(o); return o;
 }
-function logCard(title){ const log=E('div',{class:'log'}); const c=E('div',{class:'card'},[E('h4',{text:title}),log]); return {card:c,log}; }
-function setLegend(items){ const l=$('#legend'); l.innerHTML=''; items.forEach(it=>l.appendChild(E('span',{html:`<i style="background:${it[1]}"></i>${it[0]}`}))); }
+function place(o) { const p = pointAt(o.pl, o.pos); o.el.setAttribute('cx', p[0]); o.el.setAttribute('cy', p[1]); }
+let lastT = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  dots.forEach(o => { if (active[o.sec]) { o.pos += dt * o.speed; place(o); } });
+  requestAnimationFrame(frame);
+}
+function drawIn(poly, ms) {                        // draw a polyline progressively
+  if (RM) return;
+  const L = poly.getTotalLength ? poly.getTotalLength() : 0; if (!L) return;
+  poly.style.transition = 'none'; poly.style.strokeDasharray = L; poly.style.strokeDashoffset = L;
+  poly.getBoundingClientRect();
+  poly.style.transition = `stroke-dashoffset ${ms}ms ease`; poly.style.strokeDashoffset = 0;
+  setTimeout(() => { poly.style.strokeDasharray = ''; }, ms + 100);
+}
 
-/* ============================ Player ============================ */
-const Player={
-  scene:null, i:0, len:0, timer:null, playing:false, speed:1, mode:'steps',
-  playBtn:$('#playBtn'), stepBtn:$('#stepBtn'), scrub:$('#scrub'),
-  set(scene){ this.stop(); this.scene=scene; this.mode=scene.mode||'steps';
-    this.len=scene.length||0; this.i=0;
-    this.scrub.max=Math.max(0,this.len-1); this.scrub.value=0;
-    this.stepBtn.style.display=this.mode==='steps'?'':'none';
-    this.scrub.style.display=this.mode==='steps'?'':'none';
-    if(scene.reset)scene.reset(); if(this.mode==='steps'&&scene.render)scene.render(0); this.syncBtn(); },
-  syncBtn(){ this.playBtn.innerHTML=this.playing?'❚❚ Pause':'▶ Play'; },
-  play(){ if(!this.scene)return; this.playing=true; this.syncBtn();
-    if(this.mode==='live'){ this.scene.play&&this.scene.play(); }
-    else { clearInterval(this.timer); this.timer=setInterval(()=>this.tick(),700/this.speed); } },
-  pause(){ this.playing=false; this.syncBtn(); clearInterval(this.timer);
-    if(this.mode==='live')this.scene.pause&&this.scene.pause(); },
-  toggle(){ this.playing?this.pause():this.play(); },
-  stop(){ this.pause(); },
-  tick(){ if(this.i>=this.len-1){ this.pause(); return;} this.seek(this.i+1); },
-  step(d=1){ if(this.mode!=='steps')return; this.pause(); this.seek(clamp(this.i+d,0,this.len-1)); },
-  seek(n){ this.i=clamp(n,0,this.len-1); this.scrub.value=this.i; this.scene.render&&this.scene.render(this.i); },
-  reset(){ this.pause(); this.i=0; this.scrub.value=0; this.scene.reset&&this.scene.reset();
-    if(this.mode==='steps')this.scene.render&&this.scene.render(0); },
-  setSpeed(v){ this.speed=v; if(this.playing&&this.mode==='steps'){ clearInterval(this.timer); this.timer=setInterval(()=>this.tick(),700/this.speed);} }
+/* ================= section 1: hero ================= */
+function initHero() {
+  $('#heroTitle').textContent = DATA.meta.title;
+  $('#heroSub').textContent = DATA.meta.subtitle;
+  $('#heroLead').textContent = `We cut the average campus shuttle wait from ${fmt(K.before)} to ${fmt(K.after)} minutes, ${K.improvement}% less.`;
+  $('#heroBefore').textContent = `Before ${fmt(K.before)} min`;
+  $('#heroAfter').textContent = `After ${fmt(K.after)} min`;
+  $('#heroBadge').textContent = `${K.improvement}% less`;
+  $('#startBtn').onclick = () => goTo('problem');
+  $('#footer').innerHTML = `${DATA.meta.title} · ${DATA.meta.teams}<br>Generated offline from the real algorithm run. No internet needed.`;
+}
+let heroDone = false;
+function playHero() {
+  if (heroDone) return; heroDone = true;
+  const num = $('#heroNum'), small = '<small>min</small>';
+  const paint = t => { num.style.color = `rgb(${Math.round(lerp(220, 15, t))},${Math.round(lerp(38, 118, t))},${Math.round(lerp(38, 110, t))})`; };
+  const holder = { set textContent(v) { num.innerHTML = v + small; } };
+  countTo(holder, K.before, K.after, 2600, 2, paint);
+}
+
+/* ================= section 2: problem ================= */
+let problemMap, problemLine;
+function initProblem() {
+  $('#pLoop').textContent = fmt(K.fileLoop, 1) + ' min';
+  $('#pWait').textContent = fmt(K.before) + ' min';
+  $('#pLoopTxt').textContent = fmt(K.fileLoop, 1); $('#pWaitTxt').textContent = fmt(K.before, 1);
+  problemMap = makeMap($('#mapProblem'), 'Map of 14 campus stops with the single shuttle loop in red');
+  const pl = poly(roadPath(DATA.fileOrder, true));
+  problemLine = S('polyline', { points: ptsAttr(pl), fill: 'none', stroke: 'var(--red)', 'stroke-width': 6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: .45 });
+  problemMap.gRoute.appendChild(problemLine);
+  DATA.fileOrder.forEach(id => problemMap.nodes[id].classList.add('red'));
+  if (!RM) addDot('problem', pl, 'var(--red)', 170, problemMap.gDot); else addDot('problem', pl, 'var(--red)', 0, problemMap.gDot);
+}
+let problemDone = false;
+function playProblem() { if (!problemDone) { problemDone = true; drawIn(problemLine, 2400); } }
+
+/* ================= section 3: how we solve it ================= */
+const ICONS = {
+  graph: '<circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M7 6h10M6.3 7.8l4.5 8.4M17.7 7.8l-4.5 8.4"/>',
+  route: '<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h3M13 14h3"/>',
+  loop: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>'
 };
-Player.playBtn.onclick=()=>Player.toggle();
-Player.stepBtn.onclick=()=>Player.step(1);
-$('#resetBtn').onclick=()=>Player.reset();
-Player.scrub.oninput=e=>{ Player.pause(); Player.seek(+e.target.value); };
-$('#speed').oninput=e=>{ Player.setSpeed(+e.target.value); $('#speedVal').textContent=fmt(e.target.value,1)+'×'; };
-
-/* ============================ SCENES ============================ */
-const viz=$('#viz'), sceneTitle=$('#sceneTitle');
-function freshViz(){ viz.innerHTML=''; viz.appendChild(sceneTitle); return viz; }
-
-/* ---- 1. MST (Prim / Kruskal) ---- */
-function sceneMST(){
-  sceneTitle.textContent='Minimum Spanning Tree';
-  const map=buildMap(freshViz(),{weights:true});
-  let algo='prim';
-  const totalRow=E('b',{text:'0.00'}), cntRow=E('b',{text:'0'});
-  const {card:logC,log}=logCard('Edge decisions');
-  const sw=E('div',{class:'card'},[E('h4',{text:'Algorithm'}),
-    E('div',{class:'tabs'},[mk('Prim'),mk('Kruskal')])]);
-  function mk(name){ const b=E('button',{class:'tab',text:name}); b.setAttribute('aria-selected',name.toLowerCase()===algo);
-    b.onclick=()=>{ algo=name.toLowerCase(); build(); sw.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.textContent.toLowerCase()===algo)); }; return b; }
-  const statC=E('div',{class:'card'},[E('h4',{text:'Running total'}),
-    E('div',{class:'stat-row'},[E('span',{text:'MST cost (min)'}),totalRow]),
-    E('div',{class:'stat-row'},[E('span',{text:'Edges accepted'}),cntRow]),
-    E('div',{class:'stat-row'},[E('span',{text:'Target edges'}),E('b',{text:String(DATA.stops.length-1)})])]);
-  setSide([sw,statC,logC]);
-  setLegend([['accepted','var(--teal)'],['candidate','var(--amber)'],['rejected (cycle)','var(--red)']]);
-  let steps;
-  function build(){
-    steps=algo==='prim'?DATA.mst.prim:DATA.mst.kruskal;
-    scene.length=steps.length+1; Player.set(scene);
-  }
-  const scene={mode:'steps',length:0,
-    reset(){ map.reset(); log.innerHTML=''; totalRow.textContent='0.00'; cntRow.textContent='0'; },
-    render(i){
-      map.reset(); log.innerHTML=''; let total=0,cnt=0;
-      for(let s=0;s<i;s++){ const st=steps[s]; const el=map.edgeEl[edgeKey(st.u,st.v)];
-        const accept=algo==='prim'?true:st.accept;
-        if(accept){ el.setAttribute('class','edge teal'); map.nodeEl[st.u].classList.add('on'); map.nodeEl[st.v].classList.add('on'); total=st.total; cnt++; }
-        else { el.setAttribute('class','edge red dim'); }
-      }
-      if(i>0&&i<=steps.length){ const st=steps[i-1]; const el=map.edgeEl[edgeKey(st.u,st.v)];
-        const accept=algo==='prim'?true:st.accept;
-        el.setAttribute('class','edge '+(accept?'teal':'red'));
-        const line=E('div',{class:'hot',text:`${accept?'✓ add':'✗ skip'}  ${nameOf(st.u)}–${nameOf(st.v)}  ${fmt(st.w,1)} min`});
-        log.prepend(line);
-      }
-      totalRow.textContent=fmt(total); cntRow.textContent=String(cnt);
-    }};
-  build();
-}
-
-/* ---- 2. Dijkstra ---- */
-function sceneDijkstra(){
-  sceneTitle.textContent='Dijkstra — shortest path';
-  const map=buildMap(freshViz(),{weights:false});
-  let srcId=DATA.defaults.src, dstId=DATA.defaults.dst;
-  const srcSel=mkSel(srcId), dstSel=mkSel(dstId);
-  function mkSel(val){ const s=E('select'); DATA.stops.forEach(o=>s.appendChild(E('option',{value:o.id,text:o.name,...(o.id===val?{selected:'selected'}:{})}))); return s; }
-  srcSel.onchange=()=>{ srcId=srcSel.value; rebuild(); };
-  dstSel.onchange=()=>{ dstId=dstSel.value; drawPath(); };
-  const selCard=E('div',{class:'card'},[E('h4',{text:'Route'}),
-    E('div',{class:'stat-row'},[E('label',{class:'inl',text:'From'}),srcSel]),
-    E('div',{class:'stat-row'},[E('label',{class:'inl',text:'To'}),dstSel])]);
-  const distRow=E('b',{text:'—'}), fvRow=E('b',{text:'0'});
-  const resCard=E('div',{class:'card'},[E('h4',{text:'Result'}),
-    E('div',{class:'stat-row'},[E('span',{text:'Finalised nodes'}),fvRow]),
-    E('div',{class:'stat-row'},[E('span',{text:'Shortest distance'}),distRow]),
-    E('div',{id:'dijPath',style:'font-size:13px;color:var(--ink-2);margin-top:8px'})]);
-  setSide([selCard,resCard]);
-  setLegend([['source','var(--blue)'],['finalised','var(--teal)'],['current','var(--amber)'],['shortest path','var(--amber)']]);
-  let trace, labels={};
-  function drawPath(){
-    map.gOverlay.innerHTML=''; Object.keys(labels).forEach(k=>labels[k].remove()); labels={};
-    // redraw dist labels for finalised
-    const shown=trace.order.slice(0,Player.i);
-    shown.forEach(o=>{ if(trace.dist[o.v]!=null){ const s=byId[o.v];
-      const t=S('text',{x:px(s),y:py(s)-14,class:'ewt','text-anchor':'middle'}); t.textContent=fmt(trace.dist[o.v],1); map.gOverlay.appendChild(t); labels[o.v]=t; } });
-    // path src->dst via prev
-    const path=[]; let cur=dstId; const final=new Set(shown.map(o=>o.v));
-    if(final.has(dstId)||dstId===srcId){ while(cur!=null){ path.push(cur); if(cur===srcId)break; cur=trace.prev[cur]; }
-      if(path[path.length-1]===srcId){ path.reverse();
-        const pts=path.map(v=>`${px(byId[v])},${py(byId[v])}`).join(' ');
-        map.gOverlay.appendChild(S('polyline',{points:pts,fill:'none',stroke:'var(--amber)','stroke-width':6,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.95}));
-        distRow.textContent=fmt(trace.dist[dstId],1)+' min';
-        $('#dijPath').textContent=path.map(nameOf).join(' → ');
-        return;
-      } }
-    distRow.textContent=final.has(dstId)?fmt(trace.dist[dstId],1)+' min':'reach in play…';
-    $('#dijPath').textContent='';
-  }
-  const scene={mode:'steps',length:0,
-    reset(){ map.reset(); map.gOverlay.innerHTML=''; labels={}; map.nodeEl[srcId].classList.add('src'); fvRow.textContent='0'; },
-    render(i){
-      map.reset(); map.nodeEl[srcId].setAttribute('class','node src');
-      const shown=trace.order.slice(0,i);
-      shown.forEach((o,idx)=>{ if(o.v!==srcId)map.nodeEl[o.v].setAttribute('class','node on');
-        if(trace.prev[o.v]!=null){ const el=map.edgeEl[edgeKey(o.v,trace.prev[o.v])]; if(el&&el.getAttribute('class').indexOf('teal')<0)el.setAttribute('class','edge teal dim'); } });
-      if(i>0&&i<=trace.order.length){ const cv=trace.order[i-1].v; if(cv!==srcId)map.nodeEl[cv].setAttribute('class','node cur'); }
-      fvRow.textContent=String(shown.length);
-      drawPath();
-    }};
-  function rebuild(){ trace=DATA.dijkstra[srcId]; scene.length=trace.order.length+1; Player.set(scene); }
-  rebuild();
-}
-
-/* ---- 3. Floyd-Warshall heatmap ---- */
-function sceneFW(){
-  sceneTitle.textContent='Floyd–Warshall — all-pairs distances';
-  const c=freshViz(); const ids=DATA.fw.ids, M=DATA.fw.matrix, n=ids.length;
-  const svg=S('svg',{viewBox:'0 0 680 640'}); c.appendChild(svg);
-  const top=70,left=120,cell=(680-left-20)/n, rows=S('g');
-  let mx=0; M.forEach(r=>r.forEach(v=>mx=Math.max(mx,v)));
-  function col(v){ const t=v/(mx||1); const a=[230,242,240],b=[15,118,110];
-    return `rgb(${a.map((x,i)=>Math.round(lerp(x,b[i],Math.sqrt(t)))).join(',')})`; }
-  const cells=[];
-  for(let i=0;i<n;i++){ for(let j=0;j<n;j++){
-    const r=S('rect',{x:left+j*cell,y:top+i*cell,width:cell-1.5,height:cell-1.5,class:'hm-cell',fill:col(M[i][j]),opacity:0});
-    r.addEventListener('mousemove',ev=>{ const route=fwPath(ids[i],ids[j]).map(nameOf).join(' → ');
-      showTip(`<b>${nameOf(ids[i])} → ${nameOf(ids[j])}</b><br>${fmt(M[i][j],1)} min<br><span style="opacity:.8">${route}</span>`,ev.clientX,ev.clientY);
-      r.setAttribute('stroke','var(--ink)'); });
-    r.addEventListener('mouseleave',()=>{ hideTip(); r.setAttribute('stroke','var(--surface)'); });
-    rows.appendChild(r); cells.push({r,i}); }}
-  svg.appendChild(rows);
-  ids.forEach((id,k)=>{ const a=S('text',{x:left-8,y:top+k*cell+cell/2+3,class:'hm-axis','text-anchor':'end'}); a.textContent=nameOf(id).slice(0,10); svg.appendChild(a);
-    const b=S('text',{x:left+k*cell+cell/2,y:top-8,class:'hm-axis','text-anchor':'middle',transform:`rotate(-45 ${left+k*cell+cell/2} ${top-8})`}); b.textContent=nameOf(id).slice(0,9); svg.appendChild(b); });
-  svg.appendChild(S('text',{x:left,y:38,class:'hm-axis',text:'from ↓  to →','font-weight':'700'})).textContent='from ↓   to →';
-  function fwPath(u,v){ if(DATA.fw.next[u][v]==null&&u!==v)return []; const p=[u]; let g=20; while(u!==v&&g-->0){ u=DATA.fw.next[u][v]; p.push(u);} return p; }
-  const diam=DATA.kpi;
-  setSide([statCard('Matrix',[['Stops','14 × 14 = 196 pairs'],['Max shortest trip',fmt(mx,1)+' min'],['Computed by','Floyd–Warshall O(V³)']]),
-    E('div',{class:'card'},[E('h4',{text:'How to read'}),E('div',{style:'font-size:13.5px;color:var(--ink-2)',html:'Darker = longer shortest-path time between two stops. Hover any cell to see the pair and the route the algorithm reconstructs.'})])]);
-  setLegend([['shorter','#e6f2f0'],['longer','#0F766E']]);
-  const scene={mode:'steps',length:n+1,
-    reset(){ cells.forEach(c=>c.r.setAttribute('opacity',0)); },
-    render(i){ cells.forEach(c=>c.r.setAttribute('opacity', c.i<i?1:0)); }};
-  Player.set(scene);
-}
-
-/* ---- 4. Greedy scheduling Gantt ---- */
-function sceneGreedy(){
-  sceneTitle.textContent='Greedy driver scheduling';
-  const c=freshViz(); const sh=DATA.greedy.shifts, nd=DATA.greedy.numDrivers;
-  const a=DATA.greedy.dayStart, b=DATA.greedy.dayEnd;
-  const W=1000,H=620,L=90,R=30,T=60,laneH=(H-T-40)/nd;
-  const svg=S('svg',{viewBox:`0 0 ${W} ${H}`}); c.appendChild(svg);
-  const X=m=>L+(m-a)/(b-a)*(W-L-R);
-  const dcol=['#0F766E','#2563eb','#d97706','#9333ea','#db2777','#059669'];
-  for(let d=0;d<nd;d++){ const y=T+d*laneH;
-    svg.appendChild(S('line',{x1:L,y1:y,x2:W-R,y2:y,stroke:'var(--border)'}));
-    const t=S('text',{x:12,y:y+laneH/2+4,class:'hm-axis','font-weight':'700'}); t.textContent='Driver '+(d+1); svg.appendChild(t); }
-  for(let m=Math.ceil(a/60)*60;m<=b;m+=60){ const x=X(m);
-    svg.appendChild(S('line',{x1:x,y1:T-6,x2:x,y2:H-40,stroke:'var(--border)','stroke-dasharray':'2 4'}));
-    const t=S('text',{x,y:H-22,class:'hm-axis','text-anchor':'middle'}); t.textContent=String(m/60|0).padStart(2,'0')+':00'; svg.appendChild(t); }
-  // reveal order: by driver, then start
-  const order=sh.slice().sort((p,q)=>p.driver-q.driver||p.start-q.start);
-  const bars=order.map(s=>{ const y=T+s.driver*laneH+8;
-    const r=S('rect',{x:X(s.start),y,width:Math.max(2,X(s.end)-X(s.start)),height:laneH-16,rx:7,class:'bar',fill:dcol[s.driver%6],opacity:0,transform:'scale(1)'});
-    r.addEventListener('mousemove',ev=>showTip(`<b>${s.id}</b> · Driver ${s.driver+1}<br>${s.startLabel}–${s.endLabel}`,ev.clientX,ev.clientY));
-    r.addEventListener('mouseleave',hideTip);
-    const tx=S('text',{x:X(s.start)+8,y:y+laneH/2,class:'hm-axis',fill:'#fff','font-weight':'700',opacity:0}); tx.textContent=s.id;
-    svg.appendChild(r); svg.appendChild(tx); return {r,tx,s}; });
-  const usedRow=E('b',{text:'0'});
-  setSide([E('div',{class:'card'},[E('h4',{text:'Activity selection'}),
-      E('div',{class:'stat-row'},[E('span',{text:'Shifts'}),E('b',{text:String(sh.length)})]),
-      E('div',{class:'stat-row'},[E('span',{text:'Drivers used'}),usedRow]),
-      E('div',{style:'font-size:13px;color:var(--ink-2);margin-top:8px',html:'Each driver greedily takes the most shifts with no overlap (earliest-finish-first). Remaining shifts start a new driver.'})])]);
-  setLegend(dcol.slice(0,nd).map((c,i)=>['Driver '+(i+1),c]));
-  const scene={mode:'steps',length:bars.length+1,
-    reset(){ bars.forEach(b=>{b.r.setAttribute('opacity',0);b.tx.setAttribute('opacity',0);}); usedRow.textContent='0'; },
-    render(i){ let used=0; bars.forEach((b,k)=>{ const on=k<i; b.r.setAttribute('opacity',on?.96:0); b.tx.setAttribute('opacity',on?1:0);
-        if(on)used=Math.max(used,b.s.driver+1); }); usedRow.textContent=String(used); }};
-  Player.set(scene);
-}
-
-/* ---- 5. Knapsack ---- */
-function sceneKnap(){
-  sceneTitle.textContent='0-1 Knapsack — passenger assignment';
-  const c=freshViz(); const V=DATA.knapsack.vehicles, un=DATA.knapsack.unassigned;
-  const W=1000,H=620; const svg=S('svg',{viewBox:`0 0 ${W} ${H}`}); c.appendChild(svg);
-  const gcol=['#0F766E','#2563eb','#d97706','#9333ea','#db2777','#059669','#0891b2','#ca8a04'];
-  const rowH=150, seatGap=4;
-  // flatten reveal order: vehicle by vehicle, group by group
-  const frames=[]; V.forEach((v,vi)=>v.groups.forEach((g,gi)=>frames.push({vi,gi})));
-  const seatEls=[]; // per vehicle array of rects
-  V.forEach((v,vi)=>{
-    const y=40+vi*rowH; const seatW=(W-260)/v.cap;
-    svg.appendChild(S('text',{x:30,y:y+18,class:'hm-axis','font-weight':'700'})).textContent=`${v.id}  (depot ${v.depot})`;
-    const arr=[];
-    for(let s=0;s<v.cap;s++){ const r=S('rect',{x:220+s*seatW,y:y+28,width:seatW-seatGap,height:40,rx:5,class:'seat',fill:'var(--surface-2)',stroke:'var(--border)'}); svg.appendChild(r); arr.push(r); }
-    seatEls.push({arr,v,y,seatW});
-    v._valText=S('text',{x:W-30,y:y+54,class:'hm-axis','text-anchor':'end','font-weight':'700'}); v._valText.textContent=''; svg.appendChild(v._valText);
+function initSolution() {
+  const host = $('#steps');
+  DATA.steps.forEach((s, i) => {
+    const card = E('div', { class: 'card step reveal', style: `transition-delay:${i * 120}ms` });
+    card.innerHTML = `<span class="n">STEP ${i + 1}</span>
+      <div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[s.icon]}</svg></div>
+      <h3></h3><div class="algos"></div>
+      <div class="simple"><b>In simple words:</b> <span class="sw"></span></div>
+      <div class="res"><span class="r1"></span><small class="r2"></small></div>`;
+    $('h3', card).textContent = s.title; $('.algos', card).textContent = s.algos;
+    $('.sw', card).textContent = s.simple; $('.r1', card).textContent = s.result;
+    if (s.result2) $('.r2', card).textContent = s.result2; else $('.r2', card).remove();
+    host.appendChild(card);
   });
-  const totRow=E('b',{text:'0'}), paxRow=E('b',{text:'0'});
-  setSide([E('div',{class:'card'},[E('h4',{text:'Objective'}),
-      E('div',{style:'font-size:13px;color:var(--ink-2);margin-bottom:8px',html:'Maximise Σ (passengers × priority) per vehicle without exceeding seats. Groups are never split.'}),
-      E('div',{class:'stat-row'},[E('span',{text:'Total value'}),totRow]),
-      E('div',{class:'stat-row'},[E('span',{text:'Seats filled'}),paxRow]),
-      E('div',{class:'stat-row'},[E('span',{text:'Unassigned groups'}),E('b',{text:String(un.length)})])])]);
-  setLegend([['assigned seat','var(--teal)'],['empty seat','var(--surface-2)']]);
-  const scene={mode:'steps',length:frames.length+1,
-    reset(){ seatEls.forEach(se=>se.arr.forEach(r=>{r.setAttribute('fill','var(--surface-2)');r.setAttribute('stroke','var(--border)');})); V.forEach(v=>v._valText.textContent=''); totRow.textContent='0'; paxRow.textContent='0'; },
-    render(i){
-      this.reset(); let totVal=0,totPax=0;
-      // count groups placed per vehicle
-      const placed=V.map(()=>0); for(let f=0;f<i;f++)placed[frames[f].vi]++;
-      V.forEach((v,vi)=>{ let seat=0,val=0,pax=0;
-        for(let g=0;g<placed[vi];g++){ const grp=v.groups[g]; const col=gcol[(vi*3+g)%gcol.length];
-          for(let s=0;s<grp.pax;s++){ const r=seatEls[vi].arr[seat++]; if(r){r.setAttribute('fill',col);r.setAttribute('stroke',col);} }
-          val+=grp.val; pax+=grp.pax; }
-        if(placed[vi]>0)v._valText.textContent=`value ${val} · ${pax}/${v.cap} seats`;
-        totVal+=val; totPax+=pax; });
-      totRow.textContent=String(totVal); paxRow.textContent=String(totPax);
-    }};
-  Player.set(scene);
 }
 
-/* ---- 6. Tour comparison (live) ---- */
-function sceneTours(){
-  sceneTitle.textContent='Tour comparison — moving shuttles';
-  const map=buildMap(freshViz(),{weights:false});
-  const tours=DATA.tours; // File order, NN, MST preorder, Optimal
-  const palette={'File order':'#dc2626','Nearest neighbour':'#d97706','MST preorder':'#0F766E','Optimal (Held-Karp)':'#2563eb'};
-  let mode='compare'; // 'compare' = file/MST/optimal race ; 'slices' = 3 shuttles
-  const btns=E('div',{class:'tabs'},[tabBtn('Race tours','compare'),tabBtn('3 shuttles','slices')]);
-  function tabBtn(t,m){ const b=E('button',{class:'tab',text:t}); b.setAttribute('aria-selected',m===mode); b.onclick=()=>{mode=m;btns.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===b));setup();}; return b; }
-  const info=E('div',{style:'font-size:13px;color:var(--ink-2)'});
-  setSide([E('div',{class:'card'},[E('h4',{text:'Mode'}),btns]),
-           E('div',{class:'card'},[E('h4',{text:'Loop times'}),info])]);
-  // precompute polylines
-  function poly(order){ const closed=order.concat([order[0]]); const pts=closed.map(v=>[px(byId[v]),py(byId[v])]);
-    let len=0; const seg=[]; for(let i=0;i<pts.length-1;i++){ const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]); seg.push({a:pts[i],b:pts[i+1],d,acc:len}); len+=d; } return {pts,seg,len}; }
-  function at(P,dist){ dist=((dist%P.len)+P.len)%P.len; for(const s of P.seg){ if(dist<=s.acc+s.d){ const t=(dist-s.acc)/s.d; return [lerp(s.a[0],s.b[0],t),lerp(s.a[1],s.b[1],t)]; } } return P.pts[0]; }
-  let runners=[], raf=null, t0=0, elapsed=0;
-  function clearRun(){ map.reset(); map.gOverlay.innerHTML=''; runners=[]; }
-  function setup(){
-    clearRun();
-    if(mode==='compare'){
-      const pick=[tours.find(t=>t.name==='File order'),tours.find(t=>t.name==='MST preorder'),tours.find(t=>t.name==='Optimal (Held-Karp)')];
-      info.innerHTML=pick.map(t=>`<div class="stat-row"><span style="color:${palette[t.name]}">●</span> <span>${t.name}</span> <b>${fmt(t.cost,1)} min</b></div>`).join('');
-      pick.forEach(t=>{ const P=poly(t.order); const col=palette[t.name];
-        // faint path
-        map.gOverlay.appendChild(S('polyline',{points:P.pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:col,'stroke-width':2.5,opacity:.3,'stroke-linejoin':'round'}));
-        const dot=S('circle',{r:9,fill:col,stroke:'var(--surface)','stroke-width':3}); map.gOverlay.appendChild(dot);
-        runners.push({P,dot,speed:150/t.cost}); }); // normalise so all finish a loop in ~same wall time? use px/sec scaled by cost
-      // make them race at equal px/sec so longer tours lag -> set constant speed
-      runners.forEach(r=>r.speed=120);
-    } else {
-      const slices=DATA.slices; const cols=['#0F766E','#2563eb','#d97706','#9333ea'];
-      info.innerHTML=`<div style="margin-bottom:6px">${slices.length} shuttles, one per MST-tour slice:</div>`+
-        slices.map((s,i)=>`<div class="stat-row"><span style="color:${cols[i%4]}">●</span><span>Shuttle ${i+1}</span><b>${s.length} stops</b></div>`).join('')+
-        `<div class="stat-row" style="margin-top:6px"><span>Model avg wait</span><b>${fmt(DATA.kpi.after,2)} min</b></div>`;
-      slices.forEach((s,i)=>{ if(s.length<2){ // single-stop slice: just mark the stop
-          const only=byId[s[0]]; map.nodeEl[s[0]].setAttribute('class','node on');
-          const dot=S('circle',{cx:px(only),cy:py(only),r:8,fill:cols[i%4],stroke:'var(--surface)','stroke-width':3}); map.gOverlay.appendChild(dot); return; }
-        const P=poly(s); const col=cols[i%4];
-        map.gOverlay.appendChild(S('polyline',{points:P.pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:col,'stroke-width':3,opacity:.5,'stroke-linejoin':'round'}));
-        s.forEach(v=>map.nodeEl[v].setAttribute('class','node on'));
-        const dot=S('circle',{r:9,fill:col,stroke:'var(--surface)','stroke-width':3}); map.gOverlay.appendChild(dot);
-        runners.push({P,dot,speed:120}); }); }
-  }
-  function frame(now){ const dt=(now-t0)/1000; t0=now; elapsed+=dt*Player.speed;
-    runners.forEach(r=>{ const p=at(r.P,elapsed*r.speed); r.dot.setAttribute('cx',p[0]); r.dot.setAttribute('cy',p[1]); });
-    raf=requestAnimationFrame(frame); }
-  const scene={mode:'live',
-    play(){ if(raf)return; t0=performance.now(); raf=requestAnimationFrame(frame); },
-    pause(){ cancelAnimationFrame(raf); raf=null; },
-    reset(){ this.pause(); elapsed=0; setup(); }};
-  setup(); Player.set(scene);
+/* ================= section 4: try it ================= */
+let tryMap, routeEls = [], routeTimers = [], tryDone = false;
+function initTry() {
+  tryMap = makeMap($('#mapTry'), 'Map showing the shortest route between the chosen stops');
+  const from = $('#selFrom'), to = $('#selTo');
+  DATA.stops.forEach(s => { from.appendChild(E('option', { value: s.id, text: s.name })); to.appendChild(E('option', { value: s.id, text: s.name })); });
+  from.value = DATA.defaults.src; to.value = DATA.defaults.dst;
+  from.onchange = to.onchange = () => showRoute(from.value, to.value, true);
+  const sl = $('#kSlider'); sl.max = DATA.sensitivity.k[DATA.sensitivity.k.length - 1];
+  sl.oninput = () => showFleet(+sl.value);
+  showRoute(from.value, to.value, false); showFleet(+sl.value);
+}
+function showRoute(a, b, animate) {
+  routeTimers.forEach(clearTimeout); routeTimers = [];
+  routeEls.forEach(e => e.remove()); routeEls = [];
+  Object.values(tryMap.nodes).forEach(n => n.classList.remove('on'));
+  if (a === b) { $('#routeMin').textContent = '–'; $('#routeSub').textContent = ''; $('#routePath').textContent = 'Pick two different stops.'; return; }
+  const d = DATA.dijkstra[a]; const path = []; let cur = b;
+  while (cur != null) { path.push(cur); if (cur === a) break; cur = d.prev[cur]; }
+  path.reverse();
+  const pl = poly(path), line = S('polyline', { points: ptsAttr(pl), fill: 'none', stroke: 'var(--teal)', 'stroke-width': 8, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+  tryMap.gRoute.appendChild(line); routeEls.push(line);
+  const mins = d.dist[b], stops = path.length - 2;
+  $('#routeMin').textContent = fmt(mins, 1) + ' min';
+  $('#routeSub').textContent = stops > 0 ? `passing ${stops} stop${stops > 1 ? 's' : ''}` : 'direct, no stops in between';
+  $('#routePath').textContent = path.map(nameOf).join(' → ');
+  path.forEach((id, i) => { if (animate && !RM) routeTimers.push(setTimeout(() => tryMap.nodes[id].classList.add('on'), 250 + i * 330)); else tryMap.nodes[id].classList.add('on'); });
+  if (animate) drawIn(line, Math.max(900, path.length * 330));
+}
+function sweetSpot() { const s = DATA.sensitivity; return s.knee ? s.knee - 1 : s.k[s.k.length - 1]; }
+function showFleet(k) {
+  const s = DATA.sensitivity, w = s.wait[k - 1];
+  countTo({ set textContent(v) { $('#kWait').textContent = v; } }, parseFloat($('#kWait').textContent) || w, w, 350, 2);
+  $('#kText').textContent = `minutes average wait with ${k} shuttle${k > 1 ? 's' : ''}`;
+  const sweet = sweetSpot();
+  $('#kNote').innerHTML = `<b>Sweet spot: ${sweet} shuttles.</b> ` + (sweetHolds()
+    ? `After that, each extra shuttle saves less than ${s.threshold} minutes.` : 'Past this point the gains get small.');
+  const W = 520, H = 190, L = 50, R = 18, T = 28, B = 48, svg = $('#fleetChart'); svg.innerHTML = '';
+  const top = Math.ceil(Math.max(...s.wait) / 2) * 2,            // axis top: next even number
+        x = i => L + (i - s.k[0]) / (s.k[s.k.length - 1] - s.k[0]) * (W - L - R), y = v => T + (1 - v / top) * (H - T - B);
+  for (let v = 0; v <= top; v += 2) { const gy = y(v);
+    svg.appendChild(S('line', { x1: L, y1: gy, x2: W - R, y2: gy, stroke: '#e3e8e7' }));
+    const t = S('text', { x: L - 10, y: gy + 5, class: 'tick', 'text-anchor': 'end' }); t.textContent = v; svg.appendChild(t); }
+  s.k.forEach(i => { const t = S('text', { x: x(i), y: H - 26, class: 'tick', 'text-anchor': 'middle' }); t.textContent = i; svg.appendChild(t); });
+  const sx = x(sweet);
+  svg.appendChild(S('rect', { x: sx - 22, y: T - 8, width: 44, height: H - T - B + 8, rx: 10, fill: 'var(--teal-soft)' }));
+  const sl = S('text', { x: sx, y: T - 14, class: 'tick', 'text-anchor': 'middle', 'font-weight': 700, fill: 'var(--teal-dark)' }); sl.textContent = 'sweet spot'; svg.appendChild(sl);
+  svg.appendChild(S('polyline', { points: s.k.map(i => x(i) + ',' + y(s.wait[i - 1])).join(' '), fill: 'none', stroke: 'var(--teal)', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+  s.k.forEach(i => svg.appendChild(S('circle', { cx: x(i), cy: y(s.wait[i - 1]), r: i === k ? 11 : 6, fill: i === k ? 'var(--teal)' : '#fff', stroke: 'var(--teal)', 'stroke-width': 3.5 })));
+  const lab = S('text', { x: W / 2, y: H - 4, class: 'tick', 'text-anchor': 'middle' }); lab.textContent = 'number of shuttles'; svg.appendChild(lab);
+}
+function sweetHolds() {                              // do all later gains stay under the threshold?
+  const s = DATA.sensitivity, sweet = sweetSpot();
+  for (let k = sweet + 1; k <= s.k[s.k.length - 1]; k++) if (s.wait[k - 2] - s.wait[k - 1] >= s.threshold) return false;
+  return true;
+}
+function playTry() { if (tryDone) return; tryDone = true; showRoute($('#selFrom').value, $('#selTo').value, true); }
+
+/* ================= section 5: result ================= */
+let resultMap, barsDone = false;
+const SHUT = ['#0F766E', '#0b0f0e', '#5eb3aa'];   // three shuttles: teal, near-black, light teal (stays in palette)
+function initResult() {
+  const bars = [
+    { v: K.before, color: 'var(--red)', label: '1 shuttle, fixed order' },
+    { v: K.mstOne, color: '#5eb3aa', label: '1 shuttle, planned loop' },
+    { v: K.after, color: 'var(--teal)', label: `${K.shuttles} shuttles, planned loop` }];
+  const max = Math.max(...bars.map(b => b.v)), host = $('#bars');
+  bars.forEach(b => {
+    const col = E('div', { class: 'col' }, [E('div', { class: 'val', text: '0.00' }), E('div', { class: 'bar', style: `background:${b.color}` })]);
+    col._b = b; col._max = max; host.appendChild(col); $('#barLabels').appendChild(E('div', { text: b.label }));
+  });
+  resultMap = makeMap($('#mapResult'), 'Map with three shuttles each running its own part of the loop');
+  const legend = $('#resLegend');
+  DATA.slices.forEach((sl, i) => {
+    const col = SHUT[i % 3], path = sl.length > 1 ? roadPath(sl, true) : sl, pl = poly(path);
+    resultMap.gRoute.appendChild(S('polyline', { points: ptsAttr(pl), fill: 'none', stroke: col, 'stroke-width': 6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: .5 }));
+    sl.forEach(id => { resultMap.nodes[id].style.fill = col; });
+    addDot('result', pl, col, RM || sl.length < 2 ? 0 : 150, resultMap.gDot);
+    legend.appendChild(E('span', { html: `<i style="background:${col}"></i>Shuttle ${i + 1} · ${sl.length} stops` }));
+  });
+  $('#takeaway').innerHTML = `Shorter loops and more shuttles cut the wait by <em>${K.improvement}%</em>.`;
+}
+function playBars() {
+  if (barsDone) return; barsDone = true;
+  [...$('#bars').children].forEach((c, i) => setTimeout(() => {
+    $('.bar', c).style.height = (c._b.v / c._max * 78) + '%';
+    countTo($('.val', c), 0, c._b.v, 1200, 2);
+  }, RM ? 0 : i * 250));
 }
 
-/* ---- 7. Wait-time simulator (live) ---- */
-function sceneWait(){
-  sceneTitle.textContent='Wait-time simulator';
-  const map=buildMap(freshViz(),{weights:false});
-  let scenario='before'; // before | after
-  let nShuttle=1;
-  const avgRow=E('b',{text:'0.00'}), servedRow=E('b',{text:'0'}), modelRow=E('b',{text:fmt(DATA.kpi.before,2)});
-  const toggle=E('div',{class:'tabs'},[sc('Before · 1 shuttle','before'),sc('After · 3 shuttles','after')]);
-  function sc(t,m){ const b=E('button',{class:'tab',text:t}); b.setAttribute('aria-selected',m===scenario);
-    b.onclick=()=>{ scenario=m; nShuttle=m==='before'?1:3; slider.value=nShuttle; slLbl.textContent=nShuttle;
-      toggle.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===b)); setup(); syncFleet(nShuttle); }; return b; }
-  const slider=E('input',{type:'range',min:'1',max:String(DATA.sensitivity.k[DATA.sensitivity.k.length-1]),value:'1',style:'width:150px'});
-  const slLbl=E('b',{text:'1'});
-  slider.oninput=()=>{ nShuttle=+slider.value; slLbl.textContent=nShuttle; scenario=nShuttle===1?'before':'after';
-    toggle.querySelectorAll('.tab').forEach((x,ix)=>x.setAttribute('aria-selected',(ix===0)===(nShuttle===1))); setup(); syncFleet(nShuttle); };
-  setSide([
-    E('div',{class:'card'},[E('h4',{text:'Scenario'}),toggle,
-      E('div',{class:'stat-row',style:'margin-top:8px'},[E('label',{class:'inl',text:'Shuttles'}),E('span',{},[slider,E('span',{text:' '}),slLbl])])]),
-    E('div',{class:'card'},[E('h4',{text:'Live simulation'}),
-      E('div',{class:'stat-row'},[E('span',{text:'Passengers served'}),servedRow]),
-      E('div',{class:'stat-row'},[E('span',{text:'Simulated avg wait'}),avgRow]),
-      E('div',{class:'stat-row'},[E('span',{text:'Model avg wait'}),modelRow]),
-      E('div',{style:'font-size:12.5px;color:var(--muted);margin-top:8px',html:'Dots are waiting passengers; shuttles collect them as they pass. The live average converges toward the analytic model value.'})])]);
-  setLegend([['waiting passenger','var(--amber)'],['shuttle','var(--teal)'],['served','var(--teal)']]);
-  // tours
-  function poly(order){ const closed=order.concat([order[0]]); const pts=closed.map(v=>[px(byId[v]),py(byId[v])]);
-    let len=0; const seg=[]; for(let i=0;i<pts.length-1;i++){ const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]); seg.push({a:pts[i],b:pts[i+1],d,acc:len,to:closed[i+1]}); len+=d; } return {pts,seg,len,order}; }
-  function at(P,dist){ dist=((dist%P.len)+P.len)%P.len; for(const s of P.seg){ if(dist<=s.acc+s.d){ const t=(dist-s.acc)/s.d; return [lerp(s.a[0],s.b[0],t),lerp(s.a[1],s.b[1],t)]; } } return P.pts[0]; }
-  let shuttles=[], waiting=[], raf=null, t0=0, served=0, waitSum=0, spawnAcc=0;
-  const mstOrder=DATA.tours.find(t=>t.name==='MST preorder').order;
-  const fileOrder=DATA.tours.find(t=>t.name==='File order').order;
-  function routesFor(k){ if(k===1)return [fileOrder];
-    // split MST order into k contiguous slices (mirrors the model)
-    const o=mstOrder, n=o.length, size=Math.floor(n/k), extra=n%k; const out=[]; let idx=0;
-    for(let j=0;j<k;j++){ const c=size+(j<extra?1:0); out.push(o.slice(idx,idx+c)); idx+=c; } return out; }
-  function setup(){
-    map.reset(); map.gOverlay.innerHTML=''; shuttles=[]; waiting=[]; served=0; waitSum=0; spawnAcc=0;
-    const cols=['#0F766E','#2563eb','#d97706','#9333ea'];
-    routesFor(nShuttle).forEach((r,i)=>{ if(r.length<2){ map.nodeEl[r[0]].setAttribute('class','node on'); return; }
-      const P=poly(r); map.gOverlay.appendChild(S('polyline',{points:P.pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:cols[i%4],'stroke-width':2.5,opacity:.35}));
-      r.forEach(v=>map.nodeEl[v].setAttribute('class','node on'));
-      const dot=S('circle',{r:10,fill:cols[i%4],stroke:'var(--surface)','stroke-width':3}); map.gOverlay.appendChild(dot);
-      shuttles.push({P,dot,pos:0,col:cols[i%4]}); });
-    modelRow.textContent=fmt(nShuttle===1?DATA.kpi.before:(DATA.sensitivity.wait[nShuttle-1]),2);
-    avgRow.textContent='0.00'; servedRow.textContent='0';
-  }
-  function spawn(){ // weighted by demand: use stop list (uniform-ish), clustered to origins
-    const s=DATA.stops[(Math.random()*DATA.stops.length)|0];
-    const jx=(Math.random()-.5)*26, jy=(Math.random()-.5)*26;
-    const c=S('circle',{cx:px(s)+jx,cy:py(s)+jy,r:4,fill:'var(--amber)',opacity:.9}); map.gOverlay.appendChild(c);
-    waiting.push({el:c,stop:s.id,x:px(s)+jx,y:py(s)+jy,t:performance.now()}); }
-  function frame(now){ const dt=(now-t0)/1000; t0=now; const sp=Player.speed;
-    spawnAcc+=dt*sp*3.2; while(spawnAcc>=1){ if(waiting.length<120)spawn(); spawnAcc-=1; }
-    shuttles.forEach(sh=>{ sh.pos+=dt*sp*150; const p=at(sh.P,sh.pos); sh.dot.setAttribute('cx',p[0]); sh.dot.setAttribute('cy',p[1]);
-      // collect passengers within radius
-      for(let i=waiting.length-1;i>=0;i--){ const w=waiting[i]; if(Math.hypot(w.x-p[0],w.y-p[1])<22){
-        waitSum+=(now-w.t)/1000; served++; w.el.remove(); waiting.splice(i,1); } } });
-    if(served){ // scale sim seconds -> minutes for display against model (illustrative)
-      const scaleT=nShuttle===1?DATA.kpi.before:DATA.sensitivity.wait[nShuttle-1];
-      avgRow.textContent=fmt(waitSum/served,2); servedRow.textContent=String(served); }
-    raf=requestAnimationFrame(frame); }
-  const scene={mode:'live',
-    play(){ if(raf)return; t0=performance.now(); raf=requestAnimationFrame(frame); },
-    pause(){ cancelAnimationFrame(raf); raf=null; },
-    reset(){ this.pause(); setup(); }};
-  setup(); Player.set(scene);
+/* ================= section 6: trust ================= */
+function initTrust() {
+  const C = DATA.checks, mark = ok => ok ? '✓' : '✗';
+  const cards = [
+    { ic: '✓', t: 'Tested', p: `${K.tests} automated tests pass, including random-graph and brute-force comparisons.` },
+    { ic: '⇄', t: 'Cross-checked', p: 'Key results are confirmed by a second method:', ul: [
+      `${mark(C.mst)} Prim and Kruskal give the same road network`,
+      `${mark(C.paths)} Dijkstra, Bellman-Ford and Floyd-Warshall agree on every route`,
+      `${mark(C.tour)} Our loop is checked against the exact best loop (Held-Karp)`] },
+    { ic: '!', t: 'Honest data', p: DATA.dataNote }];
+  cards.forEach((c, i) => {
+    const el = E('div', { class: 'card reveal', style: `transition-delay:${i * 120}ms` });
+    el.innerHTML = `<span class="ok">${c.ic}</span><h3></h3><p></p>`;
+    $('h3', el).textContent = c.t; $('p', el).textContent = c.p;
+    if (c.ul) { const ul = E('ul'); c.ul.forEach(x => ul.appendChild(E('li', { text: x }))); el.appendChild(ul); }
+    $('#trustCards').appendChild(el);
+  });
+  DATA.algos.forEach(a => {
+    const tr = E('tr'); tr.innerHTML = `<td><b></b><small></small></td><td class="bo"></td><td></td>`;
+    $('b', tr).textContent = a.name; $('small', tr).textContent = a.simple; $('.bo', tr).textContent = a.bigO; tr.lastChild.textContent = a.result;
+    $('#algoBody').appendChild(tr);
+  });
 }
 
-/* ============================ tabs ============================ */
-const SCENES=[
-  {id:'mst',label:'MST (Prim / Kruskal)',fn:sceneMST},
-  {id:'dij',label:'Dijkstra',fn:sceneDijkstra},
-  {id:'fw',label:'Floyd–Warshall',fn:sceneFW},
-  {id:'greedy',label:'Scheduling',fn:sceneGreedy},
-  {id:'knap',label:'Knapsack',fn:sceneKnap},
-  {id:'tours',label:'Tour comparison',fn:sceneTours},
-  {id:'wait',label:'Wait simulator',fn:sceneWait},
-];
-const tabsEl=$('#tabs'); let activeTab=null;
-SCENES.forEach(sc=>{ const b=E('button',{class:'tab',text:sc.label,role:'tab'}); b.onclick=()=>selectTab(sc.id);
-  b.setAttribute('aria-selected','false'); sc._btn=b; tabsEl.appendChild(b); });
-function selectTab(id){ if(activeTab===id)return; activeTab=id;
-  SCENES.forEach(s=>s._btn.setAttribute('aria-selected',String(s.id===id)));
-  Player.stop(); const sc=SCENES.find(s=>s.id===id); sc.fn(); }
-
-/* ============================ fleet chart ============================ */
-let fleetHighlight=null;
-function drawFleet(){
-  const svg=$('#fleetChart'); svg.innerHTML=''; const W=560,H=320,L=52,R=20,T=24,B=46;
-  const ks=DATA.sensitivity.k, ws=DATA.sensitivity.wait;
-  const maxW=Math.max(...ws), x=k=>L+(k-ks[0])/(ks[ks.length-1]-ks[0])*(W-L-R), y=w=>T+(1-w/(maxW*1.1))*(H-T-B);
-  for(let i=0;i<=4;i++){ const gy=T+i/4*(H-T-B); svg.appendChild(S('line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:'var(--border)'}));
-    const t=S('text',{x:L-8,y:gy+4,class:'hm-axis','text-anchor':'end'}); t.textContent=fmt(maxW*1.1*(1-i/4),1); svg.appendChild(t); }
-  ks.forEach(k=>{ const t=S('text',{x:x(k),y:H-24,class:'hm-axis','text-anchor':'middle'}); t.textContent=k; svg.appendChild(t); });
-  svg.appendChild(S('text',{x:(L+W)/2,y:H-6,class:'hm-axis','text-anchor':'middle',text:'number of shuttles'})).textContent='number of shuttles';
-  // knee marker at k=3 (last big gain)
-  const knee=3; svg.appendChild(S('line',{x1:x(knee),y1:T,x2:x(knee),y2:H-B,stroke:'var(--amber)','stroke-dasharray':'4 4','stroke-width':2}));
-  svg.appendChild(S('text',{x:x(knee)+6,y:T+14,class:'hm-axis',fill:'var(--amber)','font-weight':'700'})).textContent='knee ≈ 3';
-  const pts=ks.map(k=>`${x(k)},${y(ws[k-1])}`).join(' ');
-  svg.appendChild(S('polyline',{points:pts,fill:'none',stroke:'var(--teal)','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'}));
-  ks.forEach(k=>{ const cx=x(k),cy=y(ws[k-1]); const big=fleetHighlight===k;
-    svg.appendChild(S('circle',{cx,cy,r:big?8:5,fill:big?'var(--amber)':'var(--teal)',stroke:'var(--surface)','stroke-width':2}));
-    const t=S('text',{x:cx,y:cy-12,class:'hm-axis','text-anchor':'middle','font-weight':'700'}); t.textContent=fmt(ws[k-1],2); svg.appendChild(t); });
+/* ================= navigation, reveal, presentation ================= */
+const SECS = ['hero', 'problem', 'solution', 'try', 'result', 'trust'];
+const HOOKS = { hero: playHero, problem: playProblem, try: playTry, result: playBars };
+function goTo(id) { const el = document.getElementById(id); el.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' }); }
+function currentIndex() {
+  let best = 0, bd = 1e9;
+  SECS.forEach((id, i) => { const d = Math.abs(document.getElementById(id).getBoundingClientRect().top - 64); if (d < bd) { bd = d; best = i; } });
+  return best;
 }
-function syncFleet(k){ fleetHighlight=k; drawFleet(); }
-
-function initComplexity(){ const b=$('#complexBody');
-  DATA.complexity.forEach(c=>b.appendChild(E('tr',{},[E('td',{html:`${c.name}<br><span style="color:var(--muted);font-size:12px">${c.use}</span>`}),E('td',{class:'bo',text:c.big_o})])));
+function initObservers() {
+  const links = [...document.querySelectorAll('#links a')];
+  if (!('IntersectionObserver' in window)) { document.querySelectorAll('.reveal').forEach(n => n.classList.add('in')); SECS.forEach(id => { active[id] = true; if (HOOKS[id]) HOOKS[id](); }); return; }
+  const rev = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rev.unobserve(e.target); } }), { threshold: .15 });
+  document.querySelectorAll('.reveal').forEach(n => rev.observe(n));
+  const sec = new IntersectionObserver(es => es.forEach(e => {
+    const id = e.target.id; active[id] = e.isIntersecting;
+    if (e.isIntersecting) { if (HOOKS[id]) HOOKS[id](); links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + id)); }
+  }), { threshold: .45 });
+  SECS.forEach(id => sec.observe(document.getElementById(id)));
 }
-function initNote(){ $('#dataNote').innerHTML='<b>Data note.</b> '+DATA.dataNote;
-  DATA.assumptions.forEach(a=>$('#assumeList').appendChild(E('li',{text:a}))); }
 
-/* ============================ theme ============================ */
-const themeBtn=$('#themeBtn');
-function setTheme(t){ document.documentElement.setAttribute('data-theme',t);
-  themeBtn.textContent=t==='dark'?'☀ Theme':'🌙 Theme';
-  try{localStorage.setItem('shuttle-theme',t);}catch(e){}
-  if(activeTab==='fw')drawFleet(); drawFleet(); }
-themeBtn.onclick=()=>setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
-try{ const s=localStorage.getItem('shuttle-theme'); if(s)setTheme(s); }catch(e){}
-
-/* ============================ demo mode ============================ */
-const demoBtn=$('#demoBtn'); let demo=null;
-const DEMO=[['mst',15],['dij',14],['fw',12],['greedy',14],['knap',16],['tours',16],['wait',20]];
-function startDemo(){
-  if(demo){stopDemo();return;}
-  demoBtn.textContent='■ Stop demo'; demoBtn.classList.remove('primary');
-  $('#stage').scrollIntoView({behavior:'smooth'});
-  let i=0; demo={cancelled:false,timer:null};
-  function next(){ if(demo.cancelled)return; if(i>=DEMO.length){stopDemo();return;}
-    const [id,secs]=DEMO[i++]; selectTab(id); setTimeout(()=>{ if(!demo.cancelled){Player.reset();Player.play();} },400);
-    demo.timer=setTimeout(next,secs*1000); }
-  next();
+/* Presentation mode: scrolls through all six sections (~2 minutes), each animation plays once */
+const PLAN = [['hero', 12], ['problem', 22], ['solution', 22], ['try', 30], ['result', 24], ['trust', 10]];
+let pres = null;
+function setPresentLabel(on) {
+  const b = $('#presentBtn'); b.setAttribute('aria-pressed', String(on));
+  b.innerHTML = on ? '■ <span class="lg">Stop</span><span class="sm">Stop</span>' : '▶ <span class="lg">Presentation mode</span><span class="sm">Present</span>';
 }
-function stopDemo(){ if(!demo)return; demo.cancelled=true; clearTimeout(demo.timer); demo=null;
-  Player.pause(); demoBtn.textContent='▶ Demo mode'; demoBtn.classList.add('primary'); }
-demoBtn.onclick=startDemo;
-
-/* ============================ keyboard ============================ */
-document.addEventListener('keydown',e=>{
-  if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
-  if(e.code==='Space'){ e.preventDefault(); Player.toggle(); }
-  else if(e.code==='ArrowRight'){ e.preventDefault(); Player.step(1); }
-  else if(e.code==='ArrowLeft'){ e.preventDefault(); Player.step(-1); }
-  else if(e.key==='d'||e.key==='D'){ startDemo(); }
+function startPresent() {
+  if (pres) return stopPresent();
+  setPresentLabel(true);
+  const total = PLAN.reduce((a, p) => a + p[1], 0); let i = 0, elapsed = 0; pres = { timers: [] };
+  const later = (fn, ms) => pres && pres.timers.push(setTimeout(fn, ms));
+  const bar = $('#progress'); bar.style.transition = 'none'; bar.style.width = '0';
+  (function next() {
+    if (!pres) return;
+    if (i >= PLAN.length) { stopPresent(true); return; }
+    const [id, secs] = PLAN[i++]; goTo(id);
+    bar.style.transition = `width ${secs}s linear`; bar.style.width = ((elapsed + secs) / total * 100) + '%'; elapsed += secs;
+    if (id === 'try') presentTry(later);
+    later(next, secs * 1000);
+  })();
+}
+function presentTry(later) {                         // scripted: route, a long route, then sweep the slider
+  const from = $('#selFrom'), to = $('#selTo'), sl = $('#kSlider'), D = DATA.defaults;
+  from.value = D.src; to.value = D.dst; showRoute(D.src, D.dst, true);
+  later(() => { from.value = D.altSrc; to.value = D.altDst; showRoute(D.altSrc, D.altDst, true); }, 9000);
+  const ks = [1, 2, 3, 4, 5, 6, sweetSpot()];
+  ks.forEach((k, j) => later(() => { sl.value = k; showFleet(k); }, 17000 + j * 1700));
+}
+function stopPresent(finished) {
+  if (!pres) return; pres.timers.forEach(clearTimeout); pres = null;
+  setPresentLabel(false);
+  const bar = $('#progress'); bar.style.transition = 'width .4s'; bar.style.width = finished ? '100%' : '0';
+  if (finished) setTimeout(() => { bar.style.width = '0'; }, 1500);
+}
+$('#presentBtn').onclick = startPresent;
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  const next = ['ArrowDown', 'ArrowRight', 'PageDown'].includes(e.key), prev = ['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key);
+  if (e.key === 'Escape') { stopPresent(); return; }
+  if (!next && !prev) return;
+  e.preventDefault(); if (pres) stopPresent();
+  goTo(SECS[clamp(currentIndex() + (next ? 1 : -1), 0, SECS.length - 1)]);
 });
+let wasNarrow = NARROW;                              // labels are sized per breakpoint; rebuild if it flips
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if ((window.innerWidth < 640) !== wasNarrow) location.reload(); }, 250); });
 
-/* ============================ boot ============================ */
-function boot(){
-  if(!DATA){ document.body.innerHTML='<p style="padding:40px">Data payload missing — run <code>python main.py</code>.</p>'; return; }
-  initHero(); initKPIs(); initReveal(); initComplexity(); initNote(); drawFleet();
-  selectTab('mst');
-  animateCounter($('#waitCounter'),DATA.kpi.before,DATA.kpi.after,2600,2);
-}
-boot();
+/* ================= boot ================= */
+(function boot() {
+  if (!DATA) { document.body.innerHTML = '<p style="padding:40px">Data missing. Run <code>python main.py</code>.</p>'; return; }
+  initHero(); initProblem(); initSolution(); initTry(); initResult(); initTrust(); initObservers();
+  if (!RM) requestAnimationFrame(t => { lastT = t; requestAnimationFrame(frame); });
+})();
 </script>
 </body>
 </html>

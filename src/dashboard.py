@@ -1,193 +1,171 @@
-"""Builds report/dashboard.html: a self-contained, offline, animated dashboard.
+"""Builds report/dashboard.html: a simple, story-style, offline dashboard.
 
-No CDN and no plotting library — every number is read from the real algorithm
-run and embedded as JSON into a hand-written HTML/CSS/JS template. This module
-only *re-derives traces* for the animations (step order of Prim/Kruskal/Dijkstra,
-the Floyd-Warshall matrix, etc.); it never changes an algorithm or a result.
+The page (src/dashboard_template.html) is hand-written HTML/CSS/JS with no CDN.
+This module only collects the results of the real algorithm run into one JSON
+payload and injects it into the template, so every number on the page comes
+from the actual run. It never changes an algorithm or a result.
 """
 import decimal
 import json
 import math
 import os
 
+from src import greedy
 from src.apsp import floyd_warshall
-from src.graph import DATA_DIR, MinHeap
-from src.mst import UnionFind
+from src.mst import kruskal
+from src.sssp import bellman_ford, dijkstra
 
 REPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report")
 TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard_template.html")
 TITLE = "Campus Shuttle Routing & Capacity Scheduling"
-SUBTITLE = "Design & Analysis of Algorithms — real campus coordinates, assumed 20 km/h"
-# Shown in the hero. Edit to your group's names.
+SUBTITLE = "Design & Analysis of Algorithms · Woxsen University"
+# Shown in the footer. Edit to your group's names.
 TEAMS = "D. Ritheek · M. Srilakshmi · B. Deekshan · P. Priyakaran · G. Madhan"
-TESTS_PASSING = 203  # from `pytest -q`; shown as a KPI
-
-# Static facts for the complexity panel (no numbers depend on these).
-COMPLEXITY = [
-    ("Adjacency list build", "O(V + E)", "load stops & roads"),
-    ("Prim (binary heap)", "O(E log V)", "MST"),
-    ("Kruskal (union-find)", "O(E log E)", "MST"),
-    ("Dijkstra (binary heap)", "O((V + E) log V)", "shortest path"),
-    ("Bellman-Ford", "O(V · E)", "shortest path, cross-check"),
-    ("Floyd-Warshall", "O(V³)", "all-pairs shortest paths"),
-    ("Greedy activity selection", "O(S log S)", "driver shifts"),
-    ("0-1 Knapsack (DP)", "O(n · W)", "passenger assignment"),
-    ("Nearest-neighbour tour", "O(n²)", "heuristic TSP"),
-    ("Held-Karp exact TSP", "O(n² · 2ⁿ)", "optimal tour"),
-]
+TESTS_PASSING = 204  # from `pytest -q`; shown on the "Tested" card
 
 
-def _r2_half_up(x):
-    """Round to 2 dp with conventional half-up (6.685 -> 6.69). Time: O(1)."""
+def _r2(x):
+    """Round to 2 dp, half-up (6.685 -> 6.69), as people expect. Time: O(1)."""
     return float(decimal.Decimal(str(x)).quantize(decimal.Decimal("0.01"), rounding=decimal.ROUND_HALF_UP))
 
 
 def _positions(g):
-    """Project lat/lng to normalized [0,1] x,y (y flipped so north is up),
-    aspect ratio preserved and centred. Time: O(V)."""
+    """Project lat/lng to [0,1] x,y (north up), aspect ratio preserved and
+    centred in the unit square. Time: O(V)."""
     ids = g.vertices()
-    meanlat = sum(g.coords[v][0] for v in ids) / len(ids)
-    k = math.cos(math.radians(meanlat))
+    k = math.cos(math.radians(sum(g.coords[v][0] for v in ids) / len(ids)))
     xs = {v: g.coords[v][1] * k for v in ids}
     ys = {v: g.coords[v][0] for v in ids}
-    minx, maxx = min(xs.values()), max(xs.values())
-    miny, maxy = min(ys.values()), max(ys.values())
+    minx, maxx, miny, maxy = min(xs.values()), max(xs.values()), min(ys.values()), max(ys.values())
     span = max(maxx - minx, maxy - miny) or 1.0
     ox, oy = (1 - (maxx - minx) / span) / 2, (1 - (maxy - miny) / span) / 2
-    return {v: (round((xs[v] - minx) / span + ox, 4),
-                round((maxy - ys[v]) / span + oy, 4)) for v in ids}
+    return {v: (round((xs[v] - minx) / span + ox, 4), round((maxy - ys[v]) / span + oy, 4)) for v in ids}
 
 
-def _prim_steps(g, start):
-    """Edges accepted by Prim, in order, with running total. Time: O(E log V)."""
-    seen, heap, steps, total = {start}, MinHeap(), [], 0.0
-    for v, w in g.adj[start]:
-        heap.push(w, (start, v))
-    while len(heap) and len(seen) < g.num_vertices():
-        w, (u, v) = heap.pop()
-        if v in seen:
-            continue
-        seen.add(v)
-        total += w
-        steps.append({"u": u, "v": v, "w": round(w, 2), "total": round(total, 2)})
-        for x, wx in g.adj[v]:
-            if x not in seen:
-                heap.push(wx, (v, x))
-    return steps
+def _checks(g, prim_total, kruskal_total, fw_dist, wait):
+    """Live cross-checks, recomputed here so the Trust section is not just a claim.
+    Time: O(V (V + E) log V + V E) for the shortest-path comparisons."""
+    paths_ok = True
+    for s in g.vertices():
+        dist, _ = dijkstra(g, s)
+        bf, _, neg = bellman_ford(g, s)
+        paths_ok &= (not neg) and all(
+            abs(dist[v] - bf[v]) < 1e-9 and abs(dist[v] - fw_dist[s][v]) < 1e-9 for v in g.vertices())
+    best = wait["optimal_cost"]
+    heur = [wait["costs"][n] for n in wait["costs"] if n != "Optimal (Held-Karp)"]
+    return {
+        "mst": abs(prim_total - kruskal_total) < 1e-9,
+        "paths": bool(paths_ok),
+        "tour": all(best <= c + 1e-9 for c in heur),
+    }
 
 
-def _kruskal_steps(g):
-    """Every candidate edge in weight order with accept/reject. Time: O(E log E)."""
-    uf, steps, total = UnionFind(g.vertices()), [], 0.0
-    for u, v, w in sorted(g.edges(), key=lambda e: e[2]):
-        acc = uf.union(u, v)
-        if acc:
-            total += w
-        steps.append({"u": u, "v": v, "w": round(w, 2), "accept": acc, "total": round(total, 2)})
-    return steps
-
-
-def _dijkstra_trace(g, source):
-    """Finalisation order + prev/dist for one source. Time: O((V + E) log V)."""
-    INF = float("inf")
-    dist = {v: INF for v in g.adj}
-    prev = {v: None for v in g.adj}
-    dist[source] = 0.0
-    heap, order = MinHeap(), []
-    heap.push(0.0, source)
-    while len(heap):
-        d, u = heap.pop()
-        if d > dist[u]:
-            continue
-        order.append({"v": u, "dist": round(dist[u], 2)})
-        for v, w in g.adj[u]:
-            nd = d + w
-            if nd < dist[v]:
-                dist[v] = nd
-                prev[v] = u
-                heap.push(nd, v)
-    return {"order": order, "prev": prev,
-            "dist": {v: (round(dist[v], 2) if dist[v] != INF else None) for v in dist}}
-
-
-def _mins_to_hhmm(m):
-    # Time: O(1)
-    return f"{m // 60:02d}:{m % 60:02d}"
-
-
-def _payload(g, prim_edges, kruskal_edges, wait, sens, src, dst,
-             drivers, shifts, assignment, unassigned):
-    """Assemble every value the front end draws, all from the real run."""
+def _payload(g, prim_edges, wait, sens, src, dst, drivers, shifts, assignment, unassigned):
+    """Assemble every value the page shows. Time: O(V^3) (Floyd-Warshall dominates)."""
     ids = g.vertices()
-    pos = _positions(g)
     names = g.names
-
-    stops = [{"id": v, "name": names[v], "lat": g.coords[v][0], "lng": g.coords[v][1],
-              "x": pos[v][0], "y": pos[v][1]} for v in ids]
-    edges = [{"u": u, "v": v, "w": round(w, 2)} for u, v, w in g.edges()]
+    pos = _positions(g)
+    prim_total = sum(w for _, _, w in prim_edges)
+    _, kruskal_total = kruskal(g)  # only to compare totals for the Trust card
 
     fw_dist, fw_nxt = floyd_warshall(g)
-    matrix = [[round(fw_dist[u][v], 2) for v in ids] for u in ids]
-    nxt = {u: {v: fw_nxt[u][v] for v in ids} for u in ids}
+    dij = {}
+    for s in ids:
+        dist, prev = dijkstra(g, s)
+        dij[s] = {"prev": prev, "dist": {v: round(dist[v], 4) for v in ids}}
+    far = max(((fw_dist[u][v], u, v) for u in ids for v in ids), key=lambda t: t[0])
 
-    dij = {s: _dijkstra_trace(g, s) for s in ids}
+    fw_checks = _checks(g, prim_total, kruskal_total, fw_dist, wait)
+    costs = wait["costs"]
+    opt = costs["Optimal (Held-Karp)"]
+    waits = wait["waits"]
+    route_min = dij[src]["dist"][dst]
+    one_driver = len(greedy.select_shifts(shifts))
+    seats = ", ".join(f"{sid} {sum(x['passengers'] for x in a['groups'])}/{a['capacity']}"
+                      for sid, a in assignment.items())
 
-    shift_driver = {s[0]: i for i, dr in enumerate(drivers) for s in dr}
-    shifts_out = [{"id": sid, "start": st, "end": en,
-                   "startLabel": _mins_to_hhmm(st), "endLabel": _mins_to_hhmm(en),
-                   "driver": shift_driver[sid]} for sid, st, en in shifts]
+    steps = [
+        {"icon": "graph", "title": "Model the campus as a graph",
+         "algos": "Graph · adjacency list",
+         "simple": "Stops become dots, roads become lines with a travel time.",
+         "result": f"{len(ids)} stops · {g.num_edges()} roads"},
+        {"icon": "route", "title": "Find roads and routes",
+         "algos": "Prim · Kruskal · Dijkstra · Bellman-Ford · Floyd-Warshall",
+         "simple": "Find the cheapest road network and the fastest route between stops.",
+         "result": f"{_r2(prim_total):.2f} min road network",
+         "result2": f"{names[src]} to {names[dst]}: {route_min:.1f} min"},
+        {"icon": "calendar", "title": "Schedule drivers and vehicles",
+         "algos": "Greedy scheduling · 0-1 knapsack",
+         "simple": "Give every shift a driver, and fit passenger groups into vehicle seats.",
+         "result": f"{len(drivers)} drivers",
+         "result2": f"cover all {len(shifts)} shifts"},
+        {"icon": "loop", "title": "Plan the best loop",
+         "algos": "MST tour · Held-Karp (exact)",
+         "simple": "Pick the stop order that makes one trip around campus shortest.",
+         "result": f"{_r2(opt):.2f} min loop",
+         "result2": f"best possible; our MST loop is {_r2(costs['MST preorder']):.2f} ({wait['mst_ratio']:.3f}x)"},
+    ]
 
-    vehicles = [{"id": sid, "cap": a["capacity"], "depot": a["depot"], "value": a["value"],
-                 "used": sum(x["passengers"] for x in a["groups"]),
-                 "groups": [{"id": x["group_id"], "pax": x["passengers"], "prio": x["priority"],
-                             "val": x["passengers"] * x["priority"]} for x in a["groups"]]}
-                for sid, a in assignment.items()]
-    unassigned_out = [{"id": x["group_id"], "pax": x["passengers"], "prio": x["priority"]}
-                      for x in unassigned]
-
-    tours = [{"name": n, "order": wait["tours"][n], "cost": round(wait["costs"][n], 2)}
-             for n in wait["tours"]]
-    slices = [list(s) for s in wait["after_loops"]]
+    # For the professor: every algorithm, its time complexity and the real result.
+    algos = [
+        ("Prim (binary heap)", "O(E log V)", f"Cheapest road network {_r2(prim_total):.2f} min",
+         "Grow one network from a stop, always adding the cheapest road that reaches a new stop."),
+        ("Kruskal (union-find)", "O(E log E)", f"Same network, {_r2(kruskal_total):.2f} min",
+         "Sort roads by time and keep each one that does not close a loop."),
+        ("Dijkstra (binary heap)", "O((V+E) log V)", f"{names[src]} to {names[dst]}: {route_min:.1f} min",
+         "Spread outwards from the start, always finalising the closest stop first."),
+        ("Bellman-Ford", "O(V·E)", "Agrees with Dijkstra on every route" if fw_checks["paths"] else "DISAGREES with Dijkstra",
+         "Repeatedly relax every road; a slower second opinion."),
+        ("Floyd-Warshall", "O(V³)", f"Longest shortest trip {far[0]:.1f} min ({names[far[1]]} to {names[far[2]]})",
+         "Try every stop as a stepping stone to get all pairs at once."),
+        ("Greedy activity selection", "O(S log S)", f"1 driver covers {one_driver} of {len(shifts)} shifts; {len(drivers)} cover all",
+         "Always take the shift that ends earliest, then repeat for the next driver."),
+        ("0-1 knapsack (DP)", "O(n·W)", f"Seats used: {seats}",
+         "For each vehicle, pick the passenger groups worth the most that still fit."),
+        ("Nearest neighbour", "O(n²)", f"Loop {_r2(costs['Nearest neighbour']):.2f} min",
+         "From each stop, always go to the closest unvisited stop."),
+        ("MST preorder tour", "O(V log V)", f"Loop {_r2(costs['MST preorder']):.2f} min ({wait['mst_ratio']:.3f}x best)",
+         "Walk around the cheapest network; provably at most 2x the best loop."),
+        ("Held-Karp (exact TSP)", "O(n²·2ⁿ)", f"Best loop {_r2(opt):.2f} min",
+         "Try all subsets of stops with memory, so the best loop is guaranteed."),
+        ("Wait model", "O(V)", f"{_r2(wait['before']):.2f} to {_r2(wait['after']):.2f} min ({round(wait['improvement_pct'])}% less)",
+         "Average wait is half the loop time, weighted by how many people start at each stop."),
+    ]
 
     return {
         "meta": {"title": TITLE, "subtitle": SUBTITLE, "teams": TEAMS},
-        "kpi": {"stops": g.num_vertices(), "roads": g.num_edges(),
-                "mstCost": _r2_half_up(sum(w for _, _, w in prim_edges)),
-                "drivers": len(drivers), "shifts": len(shifts), "tests": TESTS_PASSING,
-                "before": _r2_half_up(wait["before"]), "after": _r2_half_up(wait["after"]),
-                "improvement": round(wait["improvement_pct"])},
-        "stops": stops, "edges": edges,
-        "defaults": {"src": src, "dst": dst},
-        "mst": {"total": round(sum(w for _, _, w in prim_edges), 2),
-                "prim": _prim_steps(g, src),
-                "kruskal": _kruskal_steps(g),
-                "edges": [[u, v, round(w, 2)] for u, v, w in prim_edges]},
+        "kpi": {
+            "stops": len(ids), "roads": g.num_edges(), "mstCost": _r2(prim_total),
+            "drivers": len(drivers), "shifts": len(shifts), "tests": TESTS_PASSING,
+            "before": _r2(wait["before"]), "mstOne": _r2(waits["MST preorder"]),
+            "after": _r2(wait["after"]), "improvement": round(wait["improvement_pct"]),
+            "fileLoop": _r2(costs["File order"]), "mstLoop": _r2(costs["MST preorder"]),
+            "optLoop": _r2(opt), "shuttles": wait["k"],
+        },
+        "stops": [{"id": v, "name": names[v], "x": pos[v][0], "y": pos[v][1]} for v in ids],
+        "edges": [{"u": u, "v": v, "w": round(w, 2)} for u, v, w in g.edges()],
+        "defaults": {"src": src, "dst": dst, "altSrc": far[1], "altDst": far[2]},  # alt = longest trip, for Presentation mode
         "dijkstra": dij,
-        "fw": {"ids": ids, "matrix": matrix, "next": nxt},
-        "greedy": {"shifts": shifts_out, "numDrivers": len(drivers),
-                   "dayStart": min(s[1] for s in shifts), "dayEnd": max(s[2] for s in shifts)},
-        "knapsack": {"vehicles": vehicles, "unassigned": unassigned_out},
-        "tours": tours, "slices": slices,
-        "waitBars": [{"name": n, "val": round(wait["waits"][n], 2)} for n in wait["waits"]]
-                    + [{"name": f"After ({wait['k']} shuttles)", "val": round(wait["after"], 2)}],
-        "sensitivity": {"k": sens["k"], "wait": [round(x, 2) for x in sens["wait"]],
-                        "gain": [None if g_ is None else round(g_, 2) for g_ in sens["gain"]],
+        "fwNext": {u: {v: fw_nxt[u][v] for v in ids} for u in ids},
+        "fileOrder": wait["tours"]["File order"],
+        "slices": [list(s) for s in wait["after_loops"]],
+        "sensitivity": {"k": sens["k"], "wait": [_r2(x) for x in sens["wait"]],
                         "knee": sens["knee"], "threshold": sens["threshold"]},
-        "complexity": [{"name": n, "big_o": o, "use": u} for n, o, u in COMPLEXITY],
-        "assumptions": wait["assumptions"],
-        "dataNote": ("Stop names and GPS coordinates are REAL. Road links, travel times "
-                     "(haversine at an assumed 20 km/h), passenger demand, fleet and driver "
-                     "shifts are ESTIMATES for the model."),
+        "steps": steps,
+        "algos": [{"name": n, "bigO": o, "result": r, "simple": s} for n, o, r, s in algos],
+        "checks": fw_checks,
+        "dataNote": ("Stop names and GPS coordinates are real. Roads, travel times (20 km/h assumed), "
+                     "passenger demand, fleet and driver shifts are estimates."),
     }
 
 
 def build(g, prim_edges, kruskal_edges, wait, sens, src, dst,
           drivers, shifts, assignment, unassigned, path=None):
-    """Write the standalone dashboard HTML. Time: O(V² + E) for the embedded data."""
+    """Write the standalone dashboard HTML. `kruskal_edges` and `unassigned` are
+    accepted for a stable call signature. Time: O(V^3) for the embedded data."""
     path = path or os.path.join(REPORT_DIR, "dashboard.html")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    payload = _payload(g, prim_edges, kruskal_edges, wait, sens, src, dst,
-                       drivers, shifts, assignment, unassigned)
+    payload = _payload(g, prim_edges, wait, sens, src, dst, drivers, shifts, assignment, unassigned)
     with open(TEMPLATE, encoding="utf-8") as f:
         html = f.read()
     html = html.replace("/*__PAYLOAD__*/null", json.dumps(payload, ensure_ascii=False))
