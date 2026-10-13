@@ -66,7 +66,7 @@ src/
 tests/test_algorithms.py  202 tests (cross-checks and brute force)
 report/                 dashboard.html and generated charts
 docs/                   project report (docx and pdf)
-final_review/           review deck (pdf), presentation script, viva prep
+final_review/           final review deck (pptx and pdf)
 ```
 
 ## 5. The algorithms
@@ -107,8 +107,6 @@ Fleet sensitivity (avg wait): 1 shuttle 5.05, 2: 3.91, 3: 2.03, 4: 1.75, 5: 1.26
 - `docs/DAA_Project_Report.docx` / `.pdf`: first-draft project report (problem, literature survey, SRS, design, algorithms, results, testing, limitations).
 - `final_review/DAA_Campus_Shuttle_Deck.pptx` / `.pdf`: final review deck.
 - `notebooks/walkthrough.ipynb`: Jupyter notebook that runs the pipeline, shows the charts and runs the tests.
-- `final_review/DAA_Presentation_Script.pdf`: speaking script.
-- `final_review/DAA_Viva_Prep.md`: likely viva questions and answers.
 
 ## 9. Limitations
 
