@@ -36,8 +36,8 @@ The algorithms are correct and run unchanged on measured data; absolute minute v
 ## 3. Quick start
 
 ```bash
-git clone https://github.com/ritheekyadav01-afk/daa-campus-shuttle.git
-cd daa-campus-shuttle
+git clone https://github.com/ritheekyadav01-afk/DAA_PBL.git
+cd DAA_PBL
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py        # runs every algorithm, prints results, writes report/
