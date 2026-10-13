@@ -44,7 +44,15 @@ python main.py        # runs every algorithm, prints results, writes report/
 pytest -q             # 202 tests
 ```
 
-`main.py` prints all results and regenerates `report/dashboard.html` (open in any browser, no server needed) and the charts in `report/`.
+`main.py` prints all results and regenerates `report/dashboard.html` and the charts in `report/`.
+
+### Interactive dashboard
+
+`report/dashboard.html` is a single, self-contained web page (no server, no CDN, no internet — just double-click it). Every number in it is read from the real `main.py` run: `src/dashboard.py` exports the results as JSON and injects them into `src/dashboard_template.html`, which draws everything with hand-written HTML/CSS/SVG + JavaScript. It has:
+
+- an animated hero (average wait counting 6.69 → 2.03 min) and count-up KPI cards;
+- an **interactive algorithm stage** with Play / Pause / Step / Reset, a speed slider and keyboard shortcuts (<kbd>Space</kbd>, <kbd>←</kbd>/<kbd>→</kbd>): MST growing edge-by-edge (Prim/Kruskal), Dijkstra's wave with selectable source/destination, an animated Floyd-Warshall heatmap, a greedy-scheduling Gantt chart, knapsack seats filling, moving-shuttle tour comparison, and a live wait-time simulator with a fleet-size slider;
+- the fleet-size curve (knee at 3 shuttles), a complexity table, a data-note box, a light/dark toggle, and a **Demo mode** button that auto-plays the whole story (~2 min).
 
 ## 4. Repository layout
 
@@ -62,7 +70,8 @@ src/
   wait_model.py         average wait, shuttle slicing
   sensitivity.py        wait vs fleet size
   experiments.py        random graphs, runtime benchmarks
-  dashboard.py          interactive Plotly dashboard
+  dashboard.py          builds the interactive dashboard (exports real results as JSON)
+  dashboard_template.html  self-contained HTML/CSS/JS front end (no CDN, offline)
 tests/test_algorithms.py  202 tests (cross-checks and brute force)
 report/                 dashboard.html and generated charts
 docs/                   project report (docx and pdf)

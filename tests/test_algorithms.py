@@ -112,3 +112,27 @@ def test_knapsack_matches_brute_force(seed):
     assert best == brute
     assert sum(weights[i] for i in chosen) <= cap
     assert sum(values[i] for i in chosen) == best
+
+
+def test_dashboard_generated_with_key_numbers(tmp_path):
+    """The offline dashboard is built from the real run and embeds the headline
+    numbers (MST 5.81, wait 6.69 -> 2.03), with the JSON payload injected."""
+    from src import dashboard, dp, greedy, mst, sensitivity, wait_model
+    g = Graph.from_csv()
+    pe, _ = mst.prim(g)
+    ke, _ = mst.kruskal(g)
+    by_name = {n: v for v, n in g.names.items()}
+    src, dst = by_name["Bus Stop"], by_name["Race Arena"]
+    wait = wait_model.compare(g, pe, src)
+    sens = sensitivity.run(g, pe, src)
+    shifts = greedy.load_shifts()
+    drivers = greedy.assign_drivers(shifts)
+    assignment, left = dp.assign_groups(dp.load_demand(), dp.load_fleet())
+    out = tmp_path / "dash.html"
+    dashboard.build(g, pe, ke, wait, sens, src, dst, drivers, shifts, assignment, left, path=str(out))
+    html = out.read_text(encoding="utf-8")
+    assert out.exists() and len(html) > 20000
+    for number in ("5.81", "6.69", "2.03"):
+        assert number in html, f"missing key number {number}"
+    assert "Campus Shuttle" in html
+    assert "/*__PAYLOAD__*/null" not in html  # payload actually injected

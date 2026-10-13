@@ -67,8 +67,8 @@ def main():
     else:
         print(f"      Improvement per extra shuttle never drops below {sens['threshold']} min up to {sens['k'][-1]}")
     print("  saved", sensitivity.plot(sens))
-    fig, data = dashboard.build_figure(g, pe, wait, src, dst, sens)
-    print("  saved", dashboard.save(fig, data))
+    print("  saved", dashboard.build(g, pe, ke, wait, sens, src, dst,
+                                     drivers, shifts, assignment, left))
 
 if __name__ == "__main__":
     main()
