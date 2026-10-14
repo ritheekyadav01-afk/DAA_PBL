@@ -36,58 +36,15 @@ The algorithms are correct and run unchanged on measured data; absolute minute v
 ## 3. Quick start
 
 ```bash
-git clone https://github.com/ritheekyadav01-afk/DAA_PBL.git
-cd DAA_PBL
-python -m venv .venv && source .venv/bin/activate
+git clone https://github.com/ritheekyadav01-afk/daa-campus-shuttle.git
+cd daa-campus-shuttle
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py        # runs every algorithm, prints results, writes report/
-pytest -q             # 204 tests
+pytest -q             # 202 tests
 ```
 
-On Windows (Command Prompt), replace the activate line:
-
-```bat
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-pytest -q
-```
-
-Make sure you are inside the `DAA_PBL` folder (`cd DAA_PBL`) before running these.
-
-`main.py` prints all results and regenerates `report/dashboard.html` and the charts in `report/`.
-
-### Dashboard (the visual story)
-
-**Live demo:** https://ritheekyadav01-afk.github.io/DAA_PBL/
-
-The dashboard is the project's website. We designed and built this new front end in **VS Code using Claude Code** (Anthropic's AI coding assistant, running in the VS Code terminal): we described the layout and story we wanted, Claude Code wrote and edited `src/dashboard.py` and `src/dashboard_template.html`, and we reviewed, ran and tested every change ourselves. The algorithms and all numbers come from our own Python code, not from the front end.
-
-Open `report/dashboard.html` by double-clicking it. It is one self-contained page (no server, no CDN, no internet) written so that someone who has never seen the project understands it in about 30 seconds. It scrolls through six screens:
-
-1. **Hero:** the claim ("6.69 to 2.03 minutes, 70% less") with an animated before/after number.
-2. **The problem:** the single shuttle's fixed-order loop in red, with a moving shuttle.
-3. **How we solve it:** four steps (model, routes, scheduling, best loop), each with a plain-English "In simple words" line and its headline result.
-4. **Try it:** pick a start and end stop to see the animated shortest route (Dijkstra), and slide the number of shuttles (1 to 6) to see the average wait; the sweet spot is marked.
-5. **The result:** before vs after bars and three shuttles running their own slices of the loop.
-6. **Trust and limits:** tests, cross-checks and an honest data note, plus a collapsible technical table (every algorithm, its complexity and result) for reviewers.
-
-**Light / dark theme** (top-right toggle; light by default, your choice is remembered in the browser). In **Try it** the chosen route is drawn as a glowing line with flowing dashes and a driving shuttle; the stops are marked A, 1, 2 … B (the destination pulses), the rest of the map fades back, and a step line shows the minutes for each leg.
-
-**Presentation mode** (top-right button) auto-scrolls through the six screens in about 2 minutes; the arrow keys also move between screens and `Esc` stops it. It respects the browser's reduced-motion setting and works on phones.
-
-How it is built: `src/dashboard.py` collects the real results of the run into JSON (including live cross-checks) and injects them into `src/dashboard_template.html`, which draws everything with plain HTML, CSS, SVG and JavaScript. Nothing on the page is typed in by hand. The tests `test_dashboard_generated_with_key_numbers` and `test_dashboard_has_six_sections_and_is_offline` check that the file is generated, contains the key numbers (5.81, 6.69, 2.03) and loads no external resources.
-
-Rounding note: the exact averages are 6.685 and 5.055 minutes; the dashboard rounds halves up (6.69, 5.06), while `main.py` prints with Python's `round` (6.68, 5.05).
-
-### How the website was built (VS Code + Claude Code)
-
-1. Open the project folder in VS Code and start Claude Code in its terminal.
-2. Ask for the redesign in plain language (a clean, guided, animated page for non-technical viewers).
-3. Claude Code edits `src/dashboard_template.html` (design, animation, JavaScript) and `src/dashboard.py` (exports real results as JSON).
-4. Run `python main.py` to regenerate `report/dashboard.html`, then `pytest -q` to confirm the numbers and the offline check still pass.
-5. Review in the browser, repeat, then commit.
+`main.py` prints all results and regenerates `report/dashboard.html` (open in any browser, no server needed) and the charts in `report/`.
 
 ## 4. Repository layout
 
@@ -105,12 +62,11 @@ src/
   wait_model.py         average wait, shuttle slicing
   sensitivity.py        wait vs fleet size
   experiments.py        random graphs, runtime benchmarks
-  dashboard.py          builds the dashboard (exports real results as JSON)
-  dashboard_template.html  self-contained HTML/CSS/JS front end (no CDN, offline)
-tests/test_algorithms.py  204 tests (cross-checks, brute force, dashboard)
+  dashboard.py          interactive Plotly dashboard
+tests/test_algorithms.py  202 tests (cross-checks and brute force)
 report/                 dashboard.html and generated charts
 docs/                   project report (docx and pdf)
-final_review/           final review deck (pptx and pdf)
+final_review/           review deck (html, pdf), presentation script, viva prep
 ```
 
 ## 5. The algorithms
@@ -144,13 +100,14 @@ Fleet sensitivity (avg wait): 1 shuttle 5.05, 2: 3.91, 3: 2.03, 4: 1.75, 5: 1.26
 
 ## 7. Verification
 
-204 automated tests, mostly independent cross-checks: Prim vs Kruskal, Dijkstra vs Bellman-Ford vs Floyd-Warshall, Held-Karp vs brute-force permutations, knapsack vs brute-force subsets, and Held-Karp never losing to the heuristics, over many random seeds. A runtime benchmark (50 to 1600 nodes) confirms the expected growth.
+202 automated tests, mostly independent cross-checks: Prim vs Kruskal, Dijkstra vs Bellman-Ford vs Floyd-Warshall, Held-Karp vs brute-force permutations, knapsack vs brute-force subsets, and Held-Karp never losing to the heuristics, over many random seeds. A runtime benchmark (50 to 1600 nodes) confirms the expected growth.
 
 ## 8. Documents
 
 - `docs/DAA_Project_Report.docx` / `.pdf`: first-draft project report (problem, literature survey, SRS, design, algorithms, results, testing, limitations).
-- `final_review/DAA_Campus_Shuttle_Deck.pptx` / `.pdf`: final review deck.
-- `notebooks/walkthrough.ipynb`: Jupyter notebook that runs the pipeline, shows the charts and runs the tests.
+- `final_review/DAA_Campus_Shuttle_Deck.pdf` (and `.html`): final review deck.
+- `final_review/DAA_Presentation_Script.pdf`: speaking script.
+- `final_review/DAA_Viva_Prep.md`: likely viva questions and answers.
 
 ## 9. Limitations
 
