@@ -60,6 +60,8 @@ Make sure you are inside the `DAA_PBL` folder (`cd DAA_PBL`) before running thes
 
 ### Dashboard (the visual story)
 
+**Live demo:** https://ritheekyadav01-afk.github.io/DAA_PBL/
+
 The dashboard is the project's website. We designed and built this new front end in **VS Code using Claude Code** (Anthropic's AI coding assistant, running in the VS Code terminal): we described the layout and story we wanted, Claude Code wrote and edited `src/dashboard.py` and `src/dashboard_template.html`, and we reviewed, ran and tested every change ourselves. The algorithms and all numbers come from our own Python code, not from the front end.
 
 Open `report/dashboard.html` by double-clicking it. It is one self-contained page (no server, no CDN, no internet) written so that someone who has never seen the project understands it in about 30 seconds. It scrolls through six screens:
