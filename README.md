@@ -38,15 +38,29 @@ The algorithms are correct and run unchanged on measured data; absolute minute v
 ```bash
 git clone https://github.com/ritheekyadav01-afk/DAA_PBL.git
 cd DAA_PBL
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python main.py        # runs every algorithm, prints results, writes report/
 pytest -q             # 204 tests
 ```
 
+On Windows (Command Prompt), replace the activate line:
+
+```bat
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+pytest -q
+```
+
+Make sure you are inside the `DAA_PBL` folder (`cd DAA_PBL`) before running these.
+
 `main.py` prints all results and regenerates `report/dashboard.html` and the charts in `report/`.
 
 ### Dashboard (the visual story)
+
+The dashboard is the project's website. We designed and built this new front end in **VS Code using Claude Code** (Anthropic's AI coding assistant, running in the VS Code terminal): we described the layout and story we wanted, Claude Code wrote and edited `src/dashboard.py` and `src/dashboard_template.html`, and we reviewed, ran and tested every change ourselves. The algorithms and all numbers come from our own Python code, not from the front end.
 
 Open `report/dashboard.html` by double-clicking it. It is one self-contained page (no server, no CDN, no internet) written so that someone who has never seen the project understands it in about 30 seconds. It scrolls through six screens:
 
@@ -64,6 +78,14 @@ Open `report/dashboard.html` by double-clicking it. It is one self-contained pag
 How it is built: `src/dashboard.py` collects the real results of the run into JSON (including live cross-checks) and injects them into `src/dashboard_template.html`, which draws everything with plain HTML, CSS, SVG and JavaScript. Nothing on the page is typed in by hand. The tests `test_dashboard_generated_with_key_numbers` and `test_dashboard_has_six_sections_and_is_offline` check that the file is generated, contains the key numbers (5.81, 6.69, 2.03) and loads no external resources.
 
 Rounding note: the exact averages are 6.685 and 5.055 minutes; the dashboard rounds halves up (6.69, 5.06), while `main.py` prints with Python's `round` (6.68, 5.05).
+
+### How the website was built (VS Code + Claude Code)
+
+1. Open the project folder in VS Code and start Claude Code in its terminal.
+2. Ask for the redesign in plain language (a clean, guided, animated page for non-technical viewers).
+3. Claude Code edits `src/dashboard_template.html` (design, animation, JavaScript) and `src/dashboard.py` (exports real results as JSON).
+4. Run `python main.py` to regenerate `report/dashboard.html`, then `pytest -q` to confirm the numbers and the offline check still pass.
+5. Review in the browser, repeat, then commit.
 
 ## 4. Repository layout
 
