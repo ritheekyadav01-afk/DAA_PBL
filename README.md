@@ -196,7 +196,6 @@ report/                   generated dashboard.html and charts
 docs/                     project report (docx, pdf) and index.html for the live demo
 final_review/             final review deck (pptx, pdf)
 notebooks/                walkthrough.ipynb
-individual/               per-member LeetCode, HackerRank and MOOC submissions
 ```
 
 ## 9. Verification
@@ -210,7 +209,6 @@ Run them with `pytest -q`.
 - [`docs/DAA_Project_Report.pdf`](docs/DAA_Project_Report.pdf) (and `.docx`): problem, literature survey, SRS, design, algorithms, results, testing, limitations.
 - [`final_review/DAA_Campus_Shuttle_Deck.pdf`](final_review/DAA_Campus_Shuttle_Deck.pdf) (and `.pptx`): final review deck.
 - [`notebooks/walkthrough.ipynb`](notebooks/walkthrough.ipynb): runs the pipeline, shows the charts and runs the tests.
-- [`individual/`](individual/): each member's LeetCode, HackerRank and MOOC deliverables.
 
 ## 11. Limitations and future work
 
